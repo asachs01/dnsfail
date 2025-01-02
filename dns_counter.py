@@ -3,7 +3,6 @@ from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 from PIL import Image, ImageDraw, ImageFont
 import time
 import datetime
-import RPi.GPIO as GPIO
 import os
 import threading
 from datetime import datetime, timedelta
@@ -31,12 +30,23 @@ class DNSCounter(object):
         self.matrix = RGBMatrix(options=options)
         self.last_reset = datetime.now()
 
-        # GPIO Setup
+        # We'll initialize GPIO only when needed
         self.BUTTON_PIN = 17
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(self.BUTTON_PIN, GPIO.FALLING, 
-                            callback=self.button_callback, bouncetime=300)
+        self.setup_gpio()
+
+    def setup_gpio(self):
+        try:
+            import RPi.GPIO as GPIO
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self.BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.add_event_detect(self.BUTTON_PIN, GPIO.FALLING, 
+                                callback=self.button_callback, bouncetime=300)
+            self.gpio = GPIO
+        except Exception as e:
+            print(f"GPIO setup failed: {e}")
+            print("Button functionality will be disabled")
+            self.gpio = None
 
     def create_parser(self):
         import argparse
@@ -74,27 +84,32 @@ class DNSCounter(object):
     def run(self):
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
         
-        while True:
-            image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
-            draw = ImageDraw.Draw(image)
+        try:
+            while True:
+                image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
+                draw = ImageDraw.Draw(image)
 
-            draw.text((2, 2), "Days Since", font=font, fill=(255, 255, 255))
-            draw.text((2, 15), "DNS:", font=font, fill=(255, 255, 255))
+                draw.text((2, 2), "Days Since", font=font, fill=(255, 255, 255))
+                draw.text((2, 15), "DNS:", font=font, fill=(255, 255, 255))
 
-            duration = datetime.now() - self.last_reset
-            days_text = self.format_duration(duration)
-            
-            text_bbox = draw.textbbox((0, 0), days_text, font=font)
-            text_width = text_bbox[2] - text_bbox[0]
-            x_position = (self.matrix.width - text_width) // 2
-            
-            draw.text((x_position, 15), days_text, font=font, fill=(255, 0, 0))
-            self.matrix.SetImage(image)
-            time.sleep(60)
+                duration = datetime.now() - self.last_reset
+                days_text = self.format_duration(duration)
+                
+                text_bbox = draw.textbbox((0, 0), days_text, font=font)
+                text_width = text_bbox[2] - text_bbox[0]
+                x_position = (self.matrix.width - text_width) // 2
+                
+                draw.text((x_position, 15), days_text, font=font, fill=(255, 0, 0))
+                self.matrix.SetImage(image)
+                time.sleep(60)
+        except KeyboardInterrupt:
+            if self.gpio:
+                self.gpio.cleanup()
+            self.matrix.Clear()
 
 if __name__ == "__main__":
     dns_counter = DNSCounter()
     try:
         dns_counter.run()
     except KeyboardInterrupt:
-        GPIO.cleanup() 
+        print("Exiting...") 
