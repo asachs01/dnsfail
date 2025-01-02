@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from rgbmatrix import RGBMatrix, RGBMatrixOptions
+from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 from PIL import Image, ImageDraw, ImageFont
 import time
 import datetime
@@ -8,79 +8,92 @@ import os
 import threading
 from datetime import datetime, timedelta
 
-# GPIO Setup
-BUTTON_PIN = 17  # Adjust this to your actual GPIO pin
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+class DNSCounter(object):
+    def __init__(self):
+        self.parser = self.create_parser()
+        self.args = self.parser.parse_args()
 
-# Matrix configuration
-options = RGBMatrixOptions()
-options.rows = 32
-options.cols = 64
-options.hardware_mapping = 'adafruit-hat'
-options.gpio_slowdown = 4
-options.brightness = 100  # You can adjust this value (0-100)
-options.pwm_bits = 11
-options.pwm_lsb_nanoseconds = 130
-options.led_rgb_sequence = "RGB"  # This might need adjustment based on your panel
-options.pixel_mapper_config = ""
-options.drop_privileges = False  # Important when running with sudo
+        options = RGBMatrixOptions()
+        options.rows = 32
+        options.cols = 64
+        options.chain_length = self.args.led_chain
+        options.parallel = self.args.led_parallel
+        options.row_address_type = self.args.led_row_addr
+        options.multiplexing = self.args.led_multiplexing
+        options.pwm_bits = self.args.led_pwm_bits
+        options.brightness = self.args.led_brightness
+        options.pwm_lsb_nanoseconds = self.args.led_pwm_lsb_nanoseconds
+        options.led_rgb_sequence = self.args.led_rgb_sequence
+        options.pixel_mapper_config = self.args.led_pixel_mapper
+        options.gpio_slowdown = 4
+        options.hardware_mapping = 'adafruit-hat'
 
-matrix = RGBMatrix(options=options)
+        self.matrix = RGBMatrix(options=options)
+        self.last_reset = datetime.now()
 
-# Initialize variables
-last_reset = datetime.now()
-font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-font = ImageFont.truetype(font_path, 12)  # Increased from 8 to 12
+        # GPIO Setup
+        self.BUTTON_PIN = 17
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.add_event_detect(self.BUTTON_PIN, GPIO.FALLING, 
+                            callback=self.button_callback, bouncetime=300)
 
-def play_video():
-    os.system('cvlc --play-and-exit fail.mp4')  # Using VLC to play video
+    def create_parser(self):
+        import argparse
+        parser = argparse.ArgumentParser()
 
-def format_duration(duration):
-    # Simplify to just show days
-    days = duration.days
-    return f"{days}"
+        # Matrix arguments
+        parser.add_argument("--led-rows", action="store", help="Display rows. 16 for 16x32, 32 for 32x32. Default: 32", type=int, default=32)
+        parser.add_argument("--led-cols", action="store", help="Panel columns. Typically 32 or 64. Default: 64", type=int, default=64)
+        parser.add_argument("--led-chain", action="store", help="Daisy-chained boards. Default: 1", type=int, default=1)
+        parser.add_argument("--led-parallel", action="store", help="For Plus-models or RPi2: parallel chains. 1..3. Default: 1", type=int, default=1)
+        parser.add_argument("--led-pwm-bits", action="store", help="Bits used for PWM. Range 1..11. Default: 11", type=int, default=11)
+        parser.add_argument("--led-brightness", action="store", help="Sets brightness level. Range: 1..100. Default: 100", type=int, default=100)
+        parser.add_argument("--led-gpio-mapping", help="Hardware Mapping: regular, adafruit-hat, adafruit-hat-pwm" , choices=['regular', 'adafruit-hat', 'adafruit-hat-pwm'], type=str, default='adafruit-hat')
+        parser.add_argument("--led-scan-mode", action="store", help="Progressive or interlaced scan. 0 = Progressive, 1 = Interlaced. Default: 1", type=int, default=1)
+        parser.add_argument("--led-pwm-lsb-nanoseconds", action="store", help="Base time-unit for the on-time in the lowest significant bit in nanoseconds. Default: 130", type=int, default=130)
+        parser.add_argument("--led-row-addr", action="store", help="Addressing of rows. Default: 0", type=int, default=0)
+        parser.add_argument("--led-multiplexing", action="store", help="Multiplexing type: 0 = direct; 1 = strip; 2 = checker; 3 = spiral; 4 = Z-strip; 5 = ZnMirrorZStripe. Default: 0", type=int, default=0)
+        parser.add_argument("--led-pixel-mapper", action="store", help="Apply pixel mappers. Default: \"\"", type=str, default="")
+        parser.add_argument("--led-rgb-sequence", action="store", help="Switch if your matrix has led colors swapped. Default: RGB", type=str, default="RGB")
 
-def button_callback(channel):
-    global last_reset
-    last_reset = datetime.now()
-    threading.Thread(target=play_video).start()
+        return parser
 
-def update_display():
-    while True:
-        # Create a new image with a black background
-        image = Image.new('RGB', (64, 32), (0, 0, 0))
-        draw = ImageDraw.Draw(image)
+    def button_callback(self, channel):
+        self.last_reset = datetime.now()
+        threading.Thread(target=self.play_video).start()
 
-        # Draw "Days Since DNS" text
-        draw.text((2, 2), "Days Since", font=font, fill=(255, 255, 255))
-        draw.text((2, 15), "DNS:", font=font, fill=(255, 255, 255))
+    def play_video(self):
+        os.system('cvlc --play-and-exit fail.mp4')
 
-        # Calculate and draw the number of days
-        duration = datetime.now() - last_reset
-        days_text = format_duration(duration)
+    def format_duration(self, duration):
+        days = duration.days
+        return f"{days}"
+
+    def run(self):
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
         
-        # Center the number
-        text_bbox = draw.textbbox((0, 0), days_text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
-        x_position = (64 - text_width) // 2
-        
-        draw.text((x_position, 15), days_text, font=font, fill=(255, 0, 0))
+        while True:
+            image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
+            draw = ImageDraw.Draw(image)
 
-        # Update the matrix
-        matrix.SetImage(image)
-        time.sleep(60)  # Update every minute
+            draw.text((2, 2), "Days Since", font=font, fill=(255, 255, 255))
+            draw.text((2, 15), "DNS:", font=font, fill=(255, 255, 255))
 
-def main():
-    # Set up button interrupt
-    GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, 
-                         callback=button_callback, bouncetime=300)
-
-    try:
-        update_display()
-    except KeyboardInterrupt:
-        GPIO.cleanup()
-        matrix.Clear()
+            duration = datetime.now() - self.last_reset
+            days_text = self.format_duration(duration)
+            
+            text_bbox = draw.textbbox((0, 0), days_text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            x_position = (self.matrix.width - text_width) // 2
+            
+            draw.text((x_position, 15), days_text, font=font, fill=(255, 0, 0))
+            self.matrix.SetImage(image)
+            time.sleep(60)
 
 if __name__ == "__main__":
-    main() 
+    dns_counter = DNSCounter()
+    try:
+        dns_counter.run()
+    except KeyboardInterrupt:
+        GPIO.cleanup() 
