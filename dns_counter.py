@@ -172,10 +172,10 @@ class DNSCounter(object):
 
     def run(self):
         try:
-            # Use Teeny Tiny Pixls font
-            font_path = "fonts/TeenyTinyPixls-o2zo.ttf"  # Adjust path as needed
-            header_font = ImageFont.truetype(font_path, 8)  # Small size for header
-            time_font = ImageFont.truetype(font_path, 16)   # Larger size for time
+            # Use Teeny Tiny Pixls font with much smaller sizes
+            font_path = "fonts/TeenyTinyPixls-o2zo.ttf"
+            header_font = ImageFont.truetype(font_path, 4)  # Reduced from 8 to 4
+            time_font = ImageFont.truetype(font_path, 6)    # Reduced from 16 to 6
             
             while True:
                 image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
@@ -186,17 +186,17 @@ class DNSCounter(object):
                 text_bbox = draw.textbbox((0, 0), header_text, font=header_font)
                 text_width = text_bbox[2] - text_bbox[0]
                 x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 2), header_text, font=header_font, fill=(255, 255, 255))
+                draw.text((x_position, 4), header_text, font=header_font, fill=(255, 255, 255))
 
                 # Calculate time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
                 
-                # Draw time text with larger font
+                # Draw time text with slightly larger font
                 text_bbox = draw.textbbox((0, 0), time_text, font=time_font)
                 text_width = text_bbox[2] - text_bbox[0]
                 x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 16), time_text, font=time_font, fill=(255, 0, 0))
+                draw.text((x_position, 18), time_text, font=time_font, fill=(255, 0, 0))
 
                 self.matrix.SetImage(image)
                 time.sleep(1)
