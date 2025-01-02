@@ -172,30 +172,31 @@ class DNSCounter(object):
 
     def run(self):
         try:
-            # Load PIL0x8 font (4x8 pixels per character)
-            from PIL import ImageFont
-            font_path = "/path/to/PIX0X8.ttf"  # We'll need to provide this font
-            header_font = ImageFont.truetype(font_path, 8)
-            time_font = ImageFont.truetype(font_path, 16)
+            # Use Teeny Tiny Pixls font
+            font_path = "fonts/TeenyTinyPixls-o2zo.ttf"  # Adjust path as needed
+            header_font = ImageFont.truetype(font_path, 8)  # Small size for header
+            time_font = ImageFont.truetype(font_path, 16)   # Larger size for time
             
             while True:
                 image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
                 draw = ImageDraw.Draw(image)
 
-                # Draw header using small bitmap font
-                header_text = "DAYS SINCE DNS:"
-                header_width = len(header_text) * 6  # 5 pixels + 1 space per character
-                x_position = (self.matrix.width - header_width) // 2
-                self.draw_text(draw, header_text, x_position, 2, (255, 255, 255))
+                # Draw header text
+                header_text = "Days Since DNS:"
+                text_bbox = draw.textbbox((0, 0), header_text, font=header_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                x_position = (self.matrix.width - text_width) // 2
+                draw.text((x_position, 2), header_text, font=header_font, fill=(255, 255, 255))
 
                 # Calculate time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
                 
-                # Draw time with larger size multiplier
-                time_width = len(time_text) * 6 * 2  # doubled size for time
-                x_position = (self.matrix.width - time_width) // 2
-                self.draw_text(draw, time_text, x_position, 16, (255, 0, 0), size_multiplier=2)
+                # Draw time text with larger font
+                text_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                x_position = (self.matrix.width - text_width) // 2
+                draw.text((x_position, 16), time_text, font=time_font, fill=(255, 0, 0))
 
                 self.matrix.SetImage(image)
                 time.sleep(1)
