@@ -34,6 +34,15 @@ class DNSCounter(object):
         self.BUTTON_PIN = 17
         self.setup_gpio()
 
+        # Load bitmap font data
+        self.font_5x7 = {
+            'A': [0x7E, 0x09, 0x09, 0x09, 0x7E],  # Example bitmap for 'A'
+            # ... we'll need to define all characters
+        }
+        
+        # Alternative: Load font from file
+        self.font_path = "/usr/share/fonts/misc/tom-thumb.bdf"  # We'll need to install this
+
     def setup_gpio(self):
         # Temporarily disable GPIO setup
         self.gpio = None
@@ -140,45 +149,54 @@ class DNSCounter(object):
         
         return font
 
+    def draw_text(self, draw, text, x, y, color, size_multiplier=1):
+        """Draw text using our bitmap font"""
+        current_x = x
+        for char in text:
+            if char in self.font_5x7:
+                bitmap = self.font_5x7[char]
+                for row in range(7):
+                    for col in range(5):
+                        if bitmap[col] & (1 << (6-row)):
+                            pixel_x = current_x + (col * size_multiplier)
+                            pixel_y = y + (row * size_multiplier)
+                            if size_multiplier == 1:
+                                draw.point((pixel_x, pixel_y), color)
+                            else:
+                                draw.rectangle(
+                                    [pixel_x, pixel_y, 
+                                     pixel_x + size_multiplier - 1, 
+                                     pixel_y + size_multiplier - 1], 
+                                    fill=color)
+            current_x += (6 * size_multiplier)  # 5 pixels + 1 space between characters
+
     def run(self):
         try:
-            # Fixed font for header
-            header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)
+            # Load PIL0x8 font (4x8 pixels per character)
+            from PIL import ImageFont
+            font_path = "/path/to/PIX0X8.ttf"  # We'll need to provide this font
+            header_font = ImageFont.truetype(font_path, 8)
+            time_font = ImageFont.truetype(font_path, 16)
             
             while True:
                 image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
                 draw = ImageDraw.Draw(image)
 
-                # Draw "Days Since DNS:" text centered on top line
-                header_text = "Days Since DNS:"
-                text_bbox = draw.textbbox((0, 0), header_text, font=header_font)
-                text_width = text_bbox[2] - text_bbox[0]
-                x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 2), header_text, font=header_font, fill=(255, 255, 255))
+                # Draw header using small bitmap font
+                header_text = "DAYS SINCE DNS:"
+                header_width = len(header_text) * 6  # 5 pixels + 1 space per character
+                x_position = (self.matrix.width - header_width) // 2
+                self.draw_text(draw, header_text, x_position, 2, (255, 255, 255))
 
-                # Calculate time and format as timestamp
+                # Calculate time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
                 
-                # Dynamically size the time font
-                # Allow more height for bottom text (32 - header space)
-                time_font = self.get_max_font_size(draw, time_text, 
-                                                 max_width=self.matrix.width - 4,  # Leave 2px padding on each side
-                                                 max_height=14,  # Leave space for header
-                                                 start_size=20)
-                
-                # Center the timestamp on bottom line
-                text_bbox = draw.textbbox((0, 0), time_text, font=time_font)
-                text_width = text_bbox[2] - text_bbox[0]
-                text_height = text_bbox[3] - text_bbox[1]
-                
-                # Center horizontally and vertically in the bottom half
-                x_position = (self.matrix.width - text_width) // 2
-                y_position = 16 + (16 - text_height) // 2  # Center in bottom half
-                
-                draw.text((x_position, y_position), time_text, font=time_font, fill=(255, 0, 0))
+                # Draw time with larger size multiplier
+                time_width = len(time_text) * 6 * 2  # doubled size for time
+                x_position = (self.matrix.width - time_width) // 2
+                self.draw_text(draw, time_text, x_position, 16, (255, 0, 0), size_multiplier=2)
 
-                # Update the display
                 self.matrix.SetImage(image)
                 time.sleep(1)
                 
