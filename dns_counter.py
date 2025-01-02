@@ -86,47 +86,101 @@ class DNSCounter(object):
         os.system('cvlc --play-and-exit fail.mp4')
 
     def format_duration(self, duration):
-        days = duration.days
-        return f"{days}"
+        # Calculate all time components
+        total_days = duration.days
+        seconds = duration.seconds
+        
+        # Break down the components
+        years = total_days // 365
+        remaining_days = total_days % 365
+        months = remaining_days // 30
+        remaining_days = remaining_days % 30
+        weeks = remaining_days // 7
+        days = remaining_days % 7
+        
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = seconds % 60
+        
+        # Build the time string with consistent 2-digit numbers and 1-char units
+        components = []
+        if years > 0:
+            components.append(f"{years:02d}y")
+        if months > 0 or years > 0:
+            components.append(f"{months:02d}m")
+        if weeks > 0 or months > 0 or years > 0:
+            components.append(f"{weeks:02d}w")
+        if days > 0 or weeks > 0 or months > 0 or years > 0:
+            components.append(f"{days:02d}d")
+        
+        # Always show hours, minutes, seconds
+        components.extend([
+            f"{hours:02d}h",
+            f"{minutes:02d}m",
+            f"{seconds:02d}s"
+        ])
+        
+        return " ".join(components)
+
+    def get_max_font_size(self, draw, text, max_width, max_height, start_size=20):
+        """Determine the largest font size that will fit the text in the given space"""
+        font_size = start_size
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        
+        while font_size > 6:  # Minimum readable size
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            if text_width <= max_width and text_height <= max_height:
+                return font
+            
+            font_size -= 1
+        
+        return font
 
     def run(self):
         try:
-            # Increase font size for better visibility
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 15)
+            # Fixed font for header
+            header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)
             
             while True:
                 image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
                 draw = ImageDraw.Draw(image)
 
-                # Draw "Days Since" text centered on top line
-                days_since_text = "Days Since"
-                text_bbox = draw.textbbox((0, 0), days_since_text, font=font)
+                # Draw "Days Since DNS:" text centered on top line
+                header_text = "Days Since DNS:"
+                text_bbox = draw.textbbox((0, 0), header_text, font=header_font)
                 text_width = text_bbox[2] - text_bbox[0]
                 x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 0), days_since_text, font=font, fill=(255, 255, 255))
+                draw.text((x_position, 2), header_text, font=header_font, fill=(255, 255, 255))
 
-                # Draw "DNS" text centered on bottom line
-                dns_text = "DNS"
-                text_bbox = draw.textbbox((0, 0), dns_text, font=font)
-                text_width = text_bbox[2] - text_bbox[0]
-                x_position = (self.matrix.width - text_width) // 2
-                
-                # Calculate days and format as number
+                # Calculate time and format as timestamp
                 duration = datetime.now() - self.last_reset
-                days_text = self.format_duration(duration)
+                time_text = self.format_duration(duration)
                 
-                # Draw DNS and number on same line
-                draw.text((x_position, 16), dns_text, font=font, fill=(255, 255, 255))
+                # Dynamically size the time font
+                # Allow more height for bottom text (32 - header space)
+                time_font = self.get_max_font_size(draw, time_text, 
+                                                 max_width=self.matrix.width - 4,  # Leave 2px padding on each side
+                                                 max_height=14,  # Leave space for header
+                                                 start_size=20)
                 
-                # Draw the number in red after "DNS"
-                number_bbox = draw.textbbox((0, 0), days_text, font=font)
-                number_width = number_bbox[2] - number_bbox[0]
-                number_x = x_position + text_width + 5  # Add some spacing
-                draw.text((number_x, 16), days_text, font=font, fill=(255, 0, 0))
+                # Center the timestamp on bottom line
+                text_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
+                
+                # Center horizontally and vertically in the bottom half
+                x_position = (self.matrix.width - text_width) // 2
+                y_position = 16 + (16 - text_height) // 2  # Center in bottom half
+                
+                draw.text((x_position, y_position), time_text, font=time_font, fill=(255, 0, 0))
 
                 # Update the display
                 self.matrix.SetImage(image)
-                time.sleep(60)
+                time.sleep(1)
                 
         except KeyboardInterrupt:
             if self.gpio:
