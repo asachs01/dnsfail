@@ -25,8 +25,8 @@ class DNSCounter(object):
         options.pwm_lsb_nanoseconds = self.args.led_pwm_lsb_nanoseconds
         options.led_rgb_sequence = self.args.led_rgb_sequence
         options.pixel_mapper_config = self.args.led_pixel_mapper
-        options.gpio_slowdown = 4
-        options.hardware_mapping = 'adafruit-hat'
+        options.gpio_slowdown = self.args.led_slowdown_gpio
+        options.hardware_mapping = self.args.led_gpio_mapping
 
         self.matrix = RGBMatrix(options=options)
         self.last_reset = datetime.now()
@@ -56,6 +56,7 @@ class DNSCounter(object):
         parser.add_argument("--led-multiplexing", action="store", help="Multiplexing type: 0 = direct; 1 = strip; 2 = checker; 3 = spiral; 4 = Z-strip; 5 = ZnMirrorZStripe. Default: 0", type=int, default=0)
         parser.add_argument("--led-pixel-mapper", action="store", help="Apply pixel mappers. Default: \"\"", type=str, default="")
         parser.add_argument("--led-rgb-sequence", action="store", help="Switch if your matrix has led colors swapped. Default: RGB", type=str, default="RGB")
+        parser.add_argument("--led-slowdown-gpio", action="store", help="Slowdown GPIO. Higher value, slower but less flicker. Range: 0..4", type=int, default=4)
 
         return parser
 
