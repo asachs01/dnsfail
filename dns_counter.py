@@ -17,8 +17,14 @@ GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 options = RGBMatrixOptions()
 options.rows = 32
 options.cols = 64
-options.hardware_mapping = 'adafruit-hat'  # or 'regular' depending on your setup
-options.gpio_slowdown = 4  # Adjust if needed
+options.hardware_mapping = 'adafruit-hat'
+options.gpio_slowdown = 4
+options.brightness = 100  # You can adjust this value (0-100)
+options.pwm_bits = 11
+options.pwm_lsb_nanoseconds = 130
+options.led_rgb_sequence = "RGB"  # This might need adjustment based on your panel
+options.pixel_mapper_config = ""
+options.drop_privileges = False  # Important when running with sudo
 
 matrix = RGBMatrix(options=options)
 

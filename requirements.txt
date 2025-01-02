@@ -1,3 +1,2 @@
 RPi.GPIO>=0.7.0
-Pillow>=9.0.0
-rpi-rgb-led-matrix>=0.0.1 
+Pillow>=9.0.0 

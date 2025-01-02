@@ -3,8 +3,8 @@ Description=DNS Counter Display Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/dns_counter.py
-WorkingDirectory=/home/pi
+ExecStart=/usr/bin/sudo /home/pi/.virtualenvs/dnsfail/bin/python3 /home/pi/dnsfail/dns_counter.py
+WorkingDirectory=/home/pi/dnsfail
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
