@@ -35,6 +35,13 @@ class DNSCounter(object):
         self.setup_gpio()
 
     def setup_gpio(self):
+        # Temporarily disable GPIO setup
+        self.gpio = None
+        print("GPIO functionality temporarily disabled")
+        return
+
+        # Original code commented out for now
+        """
         try:
             import RPi.GPIO as GPIO
             GPIO.setwarnings(False)
@@ -47,6 +54,7 @@ class DNSCounter(object):
             print(f"GPIO setup failed: {e}")
             print("Button functionality will be disabled")
             self.gpio = None
+        """
 
     def create_parser(self):
         import argparse
@@ -82,26 +90,44 @@ class DNSCounter(object):
         return f"{days}"
 
     def run(self):
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
-        
         try:
+            # Increase font size for better visibility
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 15)
+            
             while True:
                 image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
                 draw = ImageDraw.Draw(image)
 
-                draw.text((2, 2), "Days Since", font=font, fill=(255, 255, 255))
-                draw.text((2, 15), "DNS:", font=font, fill=(255, 255, 255))
+                # Draw "Days Since" text centered on top line
+                days_since_text = "Days Since"
+                text_bbox = draw.textbbox((0, 0), days_since_text, font=font)
+                text_width = text_bbox[2] - text_bbox[0]
+                x_position = (self.matrix.width - text_width) // 2
+                draw.text((x_position, 0), days_since_text, font=font, fill=(255, 255, 255))
 
-                duration = datetime.now() - self.last_reset
-                days_text = self.format_duration(duration)
-                
-                text_bbox = draw.textbbox((0, 0), days_text, font=font)
+                # Draw "DNS" text centered on bottom line
+                dns_text = "DNS"
+                text_bbox = draw.textbbox((0, 0), dns_text, font=font)
                 text_width = text_bbox[2] - text_bbox[0]
                 x_position = (self.matrix.width - text_width) // 2
                 
-                draw.text((x_position, 15), days_text, font=font, fill=(255, 0, 0))
+                # Calculate days and format as number
+                duration = datetime.now() - self.last_reset
+                days_text = self.format_duration(duration)
+                
+                # Draw DNS and number on same line
+                draw.text((x_position, 16), dns_text, font=font, fill=(255, 255, 255))
+                
+                # Draw the number in red after "DNS"
+                number_bbox = draw.textbbox((0, 0), days_text, font=font)
+                number_width = number_bbox[2] - number_bbox[0]
+                number_x = x_position + text_width + 5  # Add some spacing
+                draw.text((number_x, 16), days_text, font=font, fill=(255, 0, 0))
+
+                # Update the display
                 self.matrix.SetImage(image)
                 time.sleep(60)
+                
         except KeyboardInterrupt:
             if self.gpio:
                 self.gpio.cleanup()
