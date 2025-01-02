@@ -100,36 +100,35 @@ class DNSCounter(object):
         seconds = duration.seconds
         
         # Break down the components
-        years = total_days // 365
-        remaining_days = total_days % 365
-        months = remaining_days // 30
-        remaining_days = remaining_days % 30
-        weeks = remaining_days // 7
-        days = remaining_days % 7
-        
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
         seconds = seconds % 60
         
-        # Build the time string with consistent 2-digit numbers and 1-char units
-        components = []
-        if years > 0:
-            components.append(f"{years:02d}y")
-        if months > 0 or years > 0:
-            components.append(f"{months:02d}m")
-        if weeks > 0 or months > 0 or years > 0:
-            components.append(f"{weeks:02d}w")
-        if days > 0 or weeks > 0 or months > 0 or years > 0:
-            components.append(f"{days:02d}d")
-        
-        # Always show hours, minutes, seconds
-        components.extend([
-            f"{hours:02d}h",
-            f"{minutes:02d}m",
-            f"{seconds:02d}s"
-        ])
-        
-        return " ".join(components)
+        # Start with just minutes and seconds
+        if total_days == 0 and hours == 0:
+            return f"{minutes:02d}m {seconds:02d}s"
+        # Add hours when we get there
+        elif total_days == 0:
+            return f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
+        # Add days when we get there
+        elif total_days < 7:
+            return f"{total_days}d {hours:02d}h {minutes:02d}m"
+        # Add weeks
+        elif total_days < 30:
+            weeks = total_days // 7
+            days = total_days % 7
+            return f"{weeks}w {days}d {hours:02d}h"
+        # Add months
+        elif total_days < 365:
+            months = total_days // 30
+            days = total_days % 30
+            return f"{months}m {days}d {hours:02d}h"
+        # Add years
+        else:
+            years = total_days // 365
+            days = total_days % 365
+            months = days // 30
+            return f"{years}y {months}m {days}d"
 
     def get_max_font_size(self, draw, text, max_width, max_height, start_size=20):
         """Determine the largest font size that will fit the text in the given space"""
@@ -172,33 +171,36 @@ class DNSCounter(object):
 
     def run(self):
         try:
-            # Use Teeny Tiny Pixls font with much smaller sizes
-            font_path = "fonts/TeenyTinyPixls-o2zo.ttf"
-            header_font = ImageFont.truetype(font_path, 4)  # Reduced from 8 to 4
-            time_font = ImageFont.truetype(font_path, 6)    # Reduced from 16 to 6
+            # Create a graphics canvas
+            canvas = self.matrix.CreateFrameCanvas()
+            font = graphics.Font()
+            font.LoadFont("/usr/share/fonts/misc/6x13.bdf")  # Small bitmap font
+            
+            # Create separate colors
+            white = graphics.Color(255, 255, 255)
+            red = graphics.Color(255, 0, 0)
             
             while True:
-                image = Image.new('RGB', (self.matrix.width, self.matrix.height), (0, 0, 0))
-                draw = ImageDraw.Draw(image)
-
+                # Clear the canvas
+                canvas.Clear()
+                
                 # Draw header text
                 header_text = "Days Since DNS:"
-                text_bbox = draw.textbbox((0, 0), header_text, font=header_font)
-                text_width = text_bbox[2] - text_bbox[0]
-                x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 4), header_text, font=header_font, fill=(255, 255, 255))
-
-                # Calculate time
+                header_width = graphics.DrawText(canvas, font, 
+                                              (64 - len(header_text) * 6) // 2,  # Center text
+                                              10,  # y position
+                                              white, header_text)
+                
+                # Calculate and draw time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
+                time_width = graphics.DrawText(canvas, font,
+                                            (64 - len(time_text) * 6) // 2,  # Center text
+                                            24,  # y position
+                                            red, time_text)
                 
-                # Draw time text with slightly larger font
-                text_bbox = draw.textbbox((0, 0), time_text, font=time_font)
-                text_width = text_bbox[2] - text_bbox[0]
-                x_position = (self.matrix.width - text_width) // 2
-                draw.text((x_position, 18), time_text, font=time_font, fill=(255, 0, 0))
-
-                self.matrix.SetImage(image)
+                # Update the display
+                canvas = self.matrix.SwapOnVSync(canvas)
                 time.sleep(1)
                 
         except KeyboardInterrupt:
