@@ -176,7 +176,7 @@ class DNSCounter(object):
             
             # Load two different font sizes
             header_font = graphics.Font()
-            header_font.LoadFont("fonts/6x10.bdf")  # Try 6x10 for better header visibility
+            header_font.LoadFont("fonts/6x10.bdf")  # Keep 6x10 for header
             
             time_font = graphics.Font()
             time_font.LoadFont("fonts/6x13.bdf")  # Keep this one for time
@@ -188,19 +188,27 @@ class DNSCounter(object):
             while True:
                 canvas.Clear()
                 
-                # Draw header text
-                header_text = "DAYS SINCE DNS:"
-                header_width = graphics.DrawText(canvas, header_font, 
-                                              2,  # Start a bit from the left edge
-                                              9,  # Adjusted y position for new font
-                                              white, header_text)
+                # Draw header text in two lines
+                header_text1 = "DAYS SINCE"
+                header_text2 = "DNS:"
+                
+                # Center both lines
+                header_width1 = graphics.DrawText(canvas, header_font, 
+                                               (64 - len(header_text1) * 6) // 2,  # Center first line
+                                               9,  # y position for first line
+                                               white, header_text1)
+                
+                header_width2 = graphics.DrawText(canvas, header_font,
+                                               (64 - len(header_text2) * 6) // 2,  # Center second line
+                                               18,  # y position for second line
+                                               white, header_text2)
                 
                 # Calculate and draw time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
                 time_width = graphics.DrawText(canvas, time_font,
                                             (64 - len(time_text) * 6) // 2,  # Center text
-                                            24,  # Lower y position
+                                            28,  # Adjusted lower for two-line header
                                             red, time_text)
                 
                 # Update the display
