@@ -173,8 +173,13 @@ class DNSCounter(object):
         try:
             # Create a graphics canvas
             canvas = self.matrix.CreateFrameCanvas()
-            font = graphics.Font()
-            font.LoadFont("fonts/5x7.bdf")  # Use font from local fonts directory
+            
+            # Load two different font sizes
+            header_font = graphics.Font()
+            header_font.LoadFont("fonts/4x6.bdf")  # Smaller font for header
+            
+            time_font = graphics.Font()
+            time_font.LoadFont("fonts/6x13.bdf")  # Larger font for time
             
             # Create separate colors
             white = graphics.Color(255, 255, 255)
@@ -185,18 +190,18 @@ class DNSCounter(object):
                 canvas.Clear()
                 
                 # Draw header text
-                header_text = "Days Since DNS:"
-                header_width = graphics.DrawText(canvas, font, 
-                                              (64 - len(header_text) * 5) // 2,  # Center text (5 pixels per char)
-                                              8,  # y position
+                header_text = "DAYS SINCE DNS:"  # Uppercase for better readability
+                header_width = graphics.DrawText(canvas, header_font, 
+                                              (64 - len(header_text) * 4) // 2,  # Center text (4 pixels per char)
+                                              6,  # y position closer to top
                                               white, header_text)
                 
                 # Calculate and draw time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
-                time_width = graphics.DrawText(canvas, font,
-                                            (64 - len(time_text) * 5) // 2,  # Center text
-                                            20,  # y position
+                time_width = graphics.DrawText(canvas, time_font,
+                                            (64 - len(time_text) * 6) // 2,  # Center text (6 pixels per char)
+                                            24,  # Lower y position for better spacing
                                             red, time_text)
                 
                 # Update the display
