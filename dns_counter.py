@@ -174,7 +174,7 @@ class DNSCounter(object):
             # Create a graphics canvas
             canvas = self.matrix.CreateFrameCanvas()
             font = graphics.Font()
-            font.LoadFont("/usr/share/fonts/misc/6x13.bdf")  # Small bitmap font
+            font.LoadFont("fonts/5x7.bdf")  # Using 5x7 font from the samples
             
             # Create separate colors
             white = graphics.Color(255, 255, 255)
@@ -187,16 +187,16 @@ class DNSCounter(object):
                 # Draw header text
                 header_text = "Days Since DNS:"
                 header_width = graphics.DrawText(canvas, font, 
-                                              (64 - len(header_text) * 6) // 2,  # Center text
-                                              10,  # y position
+                                              (64 - len(header_text) * 5) // 2,  # Center text (5 pixels per char)
+                                              8,  # y position
                                               white, header_text)
                 
                 # Calculate and draw time
                 duration = datetime.now() - self.last_reset
                 time_text = self.format_duration(duration)
                 time_width = graphics.DrawText(canvas, font,
-                                            (64 - len(time_text) * 6) // 2,  # Center text
-                                            24,  # y position
+                                            (64 - len(time_text) * 5) // 2,  # Center text
+                                            20,  # y position
                                             red, time_text)
                 
                 # Update the display
