@@ -174,7 +174,7 @@ class DNSCounter(object):
             # Create a graphics canvas
             canvas = self.matrix.CreateFrameCanvas()
             font = graphics.Font()
-            font.LoadFont("fonts/5x7.bdf")  # Using 5x7 font from the samples
+            font.LoadFont("/usr/share/fonts/X11/misc/5x7.bdf")  # Use system font
             
             # Create separate colors
             white = graphics.Color(255, 255, 255)
