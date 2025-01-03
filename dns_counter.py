@@ -176,10 +176,10 @@ class DNSCounter(object):
             
             # Load two different font sizes
             header_font = graphics.Font()
-            header_font.LoadFont("fonts/4x6.bdf")  # Smaller font for header
+            header_font.LoadFont("fonts/5x8.bdf")  # Try 5x8 instead of 4x6 for better letter rendering
             
             time_font = graphics.Font()
-            time_font.LoadFont("fonts/6x13.bdf")  # Larger font for time
+            time_font.LoadFont("fonts/6x13.bdf")  # Keep this one for time
             
             # Create separate colors
             white = graphics.Color(255, 255, 255)
@@ -190,10 +190,10 @@ class DNSCounter(object):
                 canvas.Clear()
                 
                 # Draw header text
-                header_text = "DAYS SINCE DNS:"  # Uppercase for better readability
+                header_text = "DAYS SINCE DNS:"
                 header_width = graphics.DrawText(canvas, header_font, 
-                                              (64 - len(header_text) * 4) // 2,  # Center text (4 pixels per char)
-                                              6,  # y position closer to top
+                                              (64 - len(header_text) * 5) // 2,  # Adjust for 5-pixel width
+                                              7,  # Adjusted y position for new font
                                               white, header_text)
                 
                 # Calculate and draw time
