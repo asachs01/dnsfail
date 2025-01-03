@@ -190,7 +190,7 @@ class DNSCounter(object):
                 
                 # Draw header text in two lines
                 header_text1 = "DAYS SINCE"
-                header_text2 = "DNS:"
+                header_text2 = "DNS"
                 
                 # Center both lines
                 header_width1 = graphics.DrawText(canvas, header_font, 
