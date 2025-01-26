@@ -3,12 +3,14 @@ Description=DNS Counter Display Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/sudo /home/pi/.virtualenvs/dnsfail/bin/python3 /home/pi/dnsfail/dns_counter.py
-WorkingDirectory=/home/pi/dnsfail
+ExecStart=/usr/bin/python3 /home/asachs/dnsfail/dns_counter.py
+RuntimeDirectory=dnsfail
+WorkingDirectory=/var/run/dnsfail
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
-User=pi
+User=root
+Group=root
 
 [Install]
 WantedBy=multi-user.target 
