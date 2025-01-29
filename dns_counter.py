@@ -96,40 +96,22 @@ class DNSCounter(object):
         return parser
 
     def format_duration(self, duration):
+        """Format duration to show all time units consistently"""
         # Calculate all time components
-        total_days = duration.days
-        seconds = duration.seconds
+        total_seconds = int(duration.total_seconds())
         
-        # Break down the components
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        seconds = seconds % 60
+        # Break down into units
+        years = duration.days // 365
+        months = (duration.days % 365) // 30
+        days = (duration.days % 365) % 30
+        hours = total_seconds // 3600 % 24
+        minutes = total_seconds % 3600 // 60
+        seconds = total_seconds % 60
         
-        # Start with just minutes and seconds
-        if total_days == 0 and hours == 0:
-            return f"{minutes:02d}m {seconds:02d}s"
-        # Add hours when we get there
-        elif total_days == 0:
-            return f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
-        # Add days when we get there
-        elif total_days < 7:
-            return f"{total_days}d {hours:02d}h {minutes:02d}m"
-        # Add weeks
-        elif total_days < 30:
-            weeks = total_days // 7
-            days = total_days % 7
-            return f"{weeks}w {days}d {hours:02d}h"
-        # Add months
-        elif total_days < 365:
-            months = total_days // 30
-            days = total_days % 30
-            return f"{months}m {days}d {hours:02d}h"
-        # Add years
-        else:
-            years = total_days // 365
-            days = total_days % 365
-            months = days // 30
-            return f"{years}y {months}m {days}d"
+        # Format as two lines with units, using 'mo' for months
+        line1 = f"{years:02d}y {months:02d}mo {days:02d}d"
+        line2 = f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
+        return (line1, line2)
 
     def get_max_font_size(self, draw, text, max_width, max_height, start_size=20):
         """Determine the largest font size that will fit the text in the given space"""
@@ -215,7 +197,7 @@ class DNSCounter(object):
             header_font.LoadFont(os.path.join(font_dir, "6x10.bdf"))
             
             time_font = graphics.Font()
-            time_font.LoadFont(os.path.join(font_dir, "6x13.bdf"))
+            time_font.LoadFont(os.path.join(font_dir, "5x8.bdf"))  # More readable size
             
             # Create colors
             white = graphics.Color(255, 255, 255)
@@ -231,21 +213,29 @@ class DNSCounter(object):
                 # Draw headers
                 graphics.DrawText(canvas, header_font, 
                                (64 - len(header_text1) * 6) // 2,
-                               9,
+                               8,
                                white, header_text1)
                 
                 graphics.DrawText(canvas, header_font,
                                (64 - len(header_text2) * 6) // 2,
-                               18,
+                               16,
                                white, header_text2)
                 
-                # Calculate and draw time
+                # Calculate and draw time in two lines
                 duration = datetime.now() - self.last_reset
-                time_text = self.format_duration(duration)
+                time_line1, time_line2 = self.format_duration(duration)
+                
+                # Draw first line of time (MM:WW:DD)
                 graphics.DrawText(canvas, time_font,
-                               (64 - len(time_text) * 6) // 2,
-                               28,
-                               red, time_text)
+                               (64 - len(time_line1) * 5) // 2,
+                               24,
+                               red, time_line1)
+                
+                # Draw second line of time (HH:MM:SS)
+                graphics.DrawText(canvas, time_font,
+                               (64 - len(time_line2) * 5) // 2,
+                               31,
+                               red, time_line2)
                 
                 # Update the display
                 canvas = self.matrix.SwapOnVSync(canvas)
