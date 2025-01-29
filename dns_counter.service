@@ -3,6 +3,9 @@ Description=DNS Counter Display Service
 After=network.target
 
 [Service]
+# Set GPIO permissions before starting
+ExecStartPre=/bin/chmod 666 /dev/gpiochip0
+ExecStartPre=/bin/chown root:gpio /dev/gpiochip0
 ExecStart=/usr/bin/python3 /home/asachs/dnsfail/dns_counter.py
 RuntimeDirectory=dnsfail
 WorkingDirectory=/var/run/dnsfail

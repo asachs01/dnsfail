@@ -7,13 +7,37 @@ import time
 import datetime
 import threading
 from datetime import datetime, timedelta
+import logging
+from logging.handlers import SysLogHandler
+import subprocess
+
+# Set up logging with more detail
+logger = logging.getLogger('dns_counter')
+logger.setLevel(logging.DEBUG)  # Change to DEBUG level
+
+# Add console handler with detailed formatting
+console = logging.StreamHandler()
+console.setFormatter(logging.Formatter(
+    '%(asctime)s dns_counter: %(levelname)s [%(filename)s:%(lineno)d] %(message)s'
+))
+logger.addHandler(console)
+
+# Add syslog handler with detailed formatting
+try:
+    syslog = SysLogHandler(address='/dev/log', facility=SysLogHandler.LOG_DAEMON)
+    syslog.setFormatter(logging.Formatter(
+        'dns_counter[%(process)d]: %(levelname)s [%(filename)s:%(lineno)d] %(message)s'
+    ))
+    logger.addHandler(syslog)
+except (OSError, IOError) as e:
+    logger.warning(f"Could not initialize syslog handler: {e}")
 
 class DNSCounter(object):
     def __init__(self):
         self.parser = self.create_parser()
         self.args = self.parser.parse_args()
 
-        print("Initializing RGB Matrix...")
+        logger.info("Initializing RGB Matrix...")
         options = RGBMatrixOptions()
         options.rows = 32
         options.cols = 64
@@ -34,13 +58,14 @@ class DNSCounter(object):
 
         try:
             self.matrix = RGBMatrix(options=options)
-            print("Matrix initialized successfully")
+            logger.info("Matrix initialized successfully")
         except Exception as e:
-            print(f"Failed to initialize matrix: {e}")
+            logger.error(f"Failed to initialize matrix: {e}")
             raise
 
         # Initialize the last reset time
         self.last_reset = datetime.now()
+        logger.info(f"Counter initialized with start time: {self.last_reset}")
 
         # Initialize GPIO for button
         self.BUTTON_PIN = 19  # Using GPIO19 which is free
@@ -180,7 +205,7 @@ class DNSCounter(object):
 
     def run(self):
         try:
-            print("Starting display loop...")
+            logger.info("Starting display loop...")
             canvas = self.matrix.CreateFrameCanvas()
             
             # Use system font directory
@@ -227,14 +252,14 @@ class DNSCounter(object):
                 time.sleep(1)
                 
         except KeyboardInterrupt:
-            print("Shutting down...")
+            logger.info("Shutting down...")
             if self.line:
                 self.line.release()
             if self.chip:
                 self.chip.close()
             self.matrix.Clear()
         except Exception as e:
-            print(f"Display error: {e}")
+            logger.error(f"Display error: {e}")
             if self.line:
                 self.line.release()
             if self.chip:
@@ -253,15 +278,15 @@ class DNSCounter(object):
                              type=gpiod.LINE_REQ_DIR_IN,
                              flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP)
             
-            print("GPIO setup successful with pull-up enabled")
+            logger.info("GPIO setup successful with pull-up enabled")
             
             # Start a thread to check the button state
             self.button_thread = threading.Thread(target=self._check_button, daemon=True)
             self.button_thread.start()
             
         except Exception as e:
-            print(f"Unexpected GPIO error: {e}")
-            print(f"Try running: sudo chmod 660 /dev/gpiochip0")
+            logger.error(f"Unexpected GPIO error: {e}")
+            logger.error("Try running: sudo chmod 660 /dev/gpiochip0")
             self.chip = None
             self.line = None
 
@@ -269,33 +294,57 @@ class DNSCounter(object):
         """Thread function to check button state"""
         last_press = 0
         last_value = None
-        print("Button monitoring started")
-        print("Initial button state:", self.line.get_value())
-        print("Waiting for button presses (0 = pressed, 1 = not pressed)")
+        logger.info("Button monitoring started")
+        logger.info(f"Initial button state: {self.line.get_value()}")
+        
+        # Get absolute path to sound file
+        sound_file = '/usr/local/share/dnsfail/media/fail.wav'
+        logger.debug(f"Sound file path: {sound_file}")
+        logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
+        
+        # Set up environment with /tmp as home
+        env = os.environ.copy()
+        env['HOME'] = '/tmp'  # Use /tmp which is world-writable
+        env['XDG_RUNTIME_DIR'] = '/tmp'  # Also set XDG runtime dir
         
         while True:
             try:
                 if self.line:
                     value = self.line.get_value()
                     if value != last_value:
-                        print(f"Button state changed to: {value}")
+                        logger.debug(f"Button state changed to: {value}")
                         last_value = value
                         
                         if value == 0:  # Button pressed (active low)
                             current_time = time.time()
                             if current_time - last_press > 0.3:  # Simple debounce
-                                print("Button press detected!")
-                                print("Resetting counter to 0...")
+                                logger.info("Button press detected - Resetting counter")
                                 self.last_reset = datetime.now()
+                                try:
+                                    logger.debug("Attempting to play sound...")
+                                    result = subprocess.run([
+                                        'aplay',
+                                        sound_file
+                                    ], stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       text=True,
+                                       env=env)
+                                    if result.returncode != 0:
+                                        logger.error(f"Audio error: {result.stderr}")
+                                    else:
+                                        logger.debug("Sound playback completed successfully")
+                                except Exception as e:
+                                    logger.error(f"Error playing sound: {e}", exc_info=True)
                                 last_press = current_time
                 time.sleep(0.1)
             except Exception as e:
-                print(f"Error reading button: {e}")
+                logger.error(f"Error in button loop: {e}", exc_info=True)
                 time.sleep(0.1)
 
 if __name__ == "__main__":
-    dns_counter = DNSCounter()
     try:
+        dns_counter = DNSCounter()
         dns_counter.run()
-    except KeyboardInterrupt:
-        print("Exiting...") 
+    except Exception as e:
+        logger.critical(f"Fatal error: {e}", exc_info=True)
+        raise 
