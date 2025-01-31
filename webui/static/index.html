@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Timer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6 text-center">
+                <h1 class="text-3xl font-bold mb-8">DAYS SINCE DNS FAILURE</h1>
+                
+                <div class="text-6xl font-mono mb-4" id="line1">
+                    Loading...
+                </div>
+                <div class="text-5xl font-mono mb-8" id="line2">
+                    
+                </div>
+                
+                <button id="resetBtn" 
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 ease-in-out transform hover:scale-105">
+                    Reset Counter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function updateCounter() {
+            try {
+                const response = await fetch('/api/v1/status');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    document.getElementById('line1').textContent = data.uptime.formatted.line1;
+                    document.getElementById('line2').textContent = data.uptime.formatted.line2;
+                }
+            } catch (error) {
+                console.error('Error fetching counter:', error);
+            }
+        }
+
+        async function resetCounter() {
+            if (!confirm('Are you sure you want to reset the counter?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/reset', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    updateCounter();
+                }
+            } catch (error) {
+                console.error('Error resetting counter:', error);
+            }
+        }
+
+        // Update counter immediately and every second
+        updateCounter();
+        setInterval(updateCounter, 1000);
+
+        // Add reset button handler
+        document.getElementById('resetBtn').addEventListener('click', resetCounter);
+    </script>
+</body>
+</html> 
