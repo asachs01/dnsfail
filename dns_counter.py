@@ -37,6 +37,11 @@ class DNSCounter(object):
         self.parser = self.create_parser()
         self.args = self.parser.parse_args()
 
+        # Initialize web UI if enabled
+        self.web_thread = None
+        if self.args.enable_webui:
+            self._init_webui()
+
         logger.info("Initializing RGB Matrix...")
         options = RGBMatrixOptions()
         options.rows = 32
@@ -77,6 +82,11 @@ class DNSCounter(object):
         import argparse
         parser = argparse.ArgumentParser()
 
+        # Add web UI arguments
+        parser.add_argument("--enable-webui", action="store_true", help="Enable web UI", default=False)
+        parser.add_argument("--port", type=int, help="Web UI port (default: 8080)", default=8080)
+        parser.add_argument("--host", type=str, help="Web UI host (default: 0.0.0.0)", default="0.0.0.0")
+
         # Matrix arguments
         parser.add_argument("--led-rows", action="store", help="Display rows. 16 for 16x32, 32 for 32x32. Default: 32", type=int, default=32)
         parser.add_argument("--led-cols", action="store", help="Panel columns. Typically 32 or 64. Default: 64", type=int, default=64)
@@ -94,6 +104,28 @@ class DNSCounter(object):
         parser.add_argument("--led-slowdown-gpio", action="store", help="Slowdown GPIO. Higher value, slower but less flicker. Range: 0..4", type=int, default=4)
 
         return parser
+
+    def _init_webui(self):
+        """Initialize and start the web UI in a separate thread"""
+        try:
+            from webui import create_app
+            
+            app = create_app(counter_instance=self)
+            
+            def run_webui():
+                app.run(host=self.args.host, port=self.args.port)
+            
+            self.web_thread = threading.Thread(target=run_webui, daemon=True)
+            self.web_thread.start()
+            logger.info(f"Web UI started on http://{self.args.host}:{self.args.port}")
+            
+        except ImportError as e:
+            logger.error(f"Failed to import web UI components: {e}")
+            logger.error("Make sure Flask is installed: pip install flask")
+            self.args.enable_webui = False
+        except Exception as e:
+            logger.error(f"Failed to start web UI: {e}")
+            self.args.enable_webui = False
 
     def format_duration(self, duration):
         """Format duration to show all time units consistently"""
