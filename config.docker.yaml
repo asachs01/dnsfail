@@ -9,7 +9,7 @@ brightness: 80  # LED matrix brightness (1-100)
 
 # Audio Configuration - use host-mounted path with WAV file
 audio_file: /usr/local/share/dnsfail/media/fail.wav
-audio_device: hw:2,0  # bcm2835 Headphones (3.5mm jack)
+audio_device: plughw:Headphones  # bcm2835 Headphones (3.5mm jack) - use name not number
 
 # Web Server Configuration
 web_port: 5000
