@@ -143,6 +143,38 @@ docker-compose run --rm test pytest --cov=dns_counter tests/
    - Check logs: `journalctl -u dns_counter`
    - Verify permissions: `ls -l /usr/local/share/dnsfail`
 
+## Development
+
+### Running Tests
+
+The project includes comprehensive unit tests for timer logic (duration formatting, persistence, and reset handling).
+
+1. **Install Development Dependencies:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Run All Tests:**
+   ```bash
+   pytest tests/ -v
+   ```
+
+3. **Run Tests with Coverage:**
+   ```bash
+   pytest tests/ --cov=dns_counter --cov-report=term-missing
+   ```
+
+4. **Coverage Target:**
+   - Overall timer logic: >80% coverage
+   - Tests are isolated and do not require hardware dependencies
+
+### Test Structure
+- `tests/test_timer.py`: Unit tests for timer functions
+- `tests/conftest.py`: Pytest fixtures and hardware mocks
+- Coverage reports available in `htmlcov/` directory
+
 ## Maintenance
 
 - Logs are available via:

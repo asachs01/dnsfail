@@ -1,0 +1,20 @@
+# DNS Counter Configuration File
+# This file contains all configurable parameters for the DNS failure counter display
+
+# GPIO Configuration
+gpio_pin: 19  # GPIO pin number for reset button (BCM numbering)
+
+# Display Configuration
+brightness: 80  # LED matrix brightness (1-100, lower values reduce flicker)
+
+# Audio Configuration
+audio_file: /usr/local/share/dnsfail/media/fail.wav  # Path to sound effect played on reset
+
+# Web Server Configuration (for future FR7 implementation)
+web_port: 5000  # Flask web server port
+
+# Persistence Configuration
+persistence_file: /usr/local/share/dnsfail/last_reset.json  # Location for storing reset timestamp
+
+# Logging Configuration
+log_level: INFO  # Logging verbosity (DEBUG|INFO|WARNING|ERROR)
