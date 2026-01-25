@@ -14,7 +14,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Stage 2: Development image
+# Stage 2: Development image (mock mode - no hardware dependencies)
 FROM base AS development
 
 # Copy application code
@@ -32,4 +32,49 @@ ENV PYTHONUNBUFFERED=1
 
 # Entrypoint for running in mock mode
 ENTRYPOINT ["python", "dns_counter.py", "--mock"]
+CMD []
+
+# Stage 3: Production image (Raspberry Pi hardware - requires arm64)
+FROM python:3.11-slim AS production
+
+# Install system dependencies for hardware access
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    alsa-utils \
+    libgpiod-dev \
+    python3-dev \
+    cython3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install gpiod Python bindings
+RUN pip install --no-cache-dir gpiod
+
+# Build and install rpi-rgb-led-matrix
+RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
+    cd /tmp/matrix && \
+    make -C bindings/python build-python PYTHON=$(which python3) && \
+    make -C bindings/python install-python PYTHON=$(which python3) && \
+    rm -rf /tmp/matrix
+
+# Copy application code
+COPY dns_counter.py .
+COPY fonts/ ./fonts/
+COPY fail.mp3 .
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Set environment for production mode
+ENV MOCK_MODE=0
+ENV PYTHONUNBUFFERED=1
+
+# Entrypoint for running with hardware
+ENTRYPOINT ["python", "dns_counter.py"]
 CMD []
