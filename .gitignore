@@ -49,4 +49,8 @@ rpi-rgb-led-matrix/
 
 # Logs
 *.log
-logs/ 
+logs/
+
+.env
+.env.local
+.env.*.local
