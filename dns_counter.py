@@ -773,10 +773,11 @@ class DNSCounter(object):
         logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
         logger.debug(f"Audio device: {audio_device or 'default'}")
 
-        # Set up environment with /tmp as home
-        env = os.environ.copy()
-        env["HOME"] = "/tmp"  # Use /tmp which is world-writable
-        env["XDG_RUNTIME_DIR"] = "/tmp"  # Also set XDG runtime dir
+        # Test audio device access at startup
+        test_result = subprocess.run(
+            ["aplay", "-l"], capture_output=True, text=True
+        )
+        logger.info(f"Audio devices at startup: {test_result.stdout[:200] if test_result.stdout else test_result.stderr[:200]}")
 
         while True:
             try:
@@ -798,12 +799,13 @@ class DNSCounter(object):
                                     if audio_device:
                                         aplay_cmd.extend(["-D", audio_device])
                                     aplay_cmd.append(sound_file)
+                                    logger.debug(f"Running: {' '.join(aplay_cmd)}")
                                     result = subprocess.run(
                                         aplay_cmd,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
-                                        env=env,
+                                        # Don't pass custom env - inherit from parent
                                     )
                                     if result.returncode != 0:
                                         logger.error(f"Audio error: {result.stderr}")
