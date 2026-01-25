@@ -5,13 +5,14 @@ Tests cover:
 - State persistence (save_state/load_state methods)
 - Reset logic (button press handling)
 """
+
 import json
 import os
-import pytest
-from datetime import datetime, timedelta
-from freezegun import freeze_time
-from unittest.mock import MagicMock, patch, call
 import tempfile
+from datetime import datetime, timedelta
+from unittest.mock import patch
+
+from freezegun import freeze_time
 
 
 class TestDurationFormatting:
@@ -103,7 +104,9 @@ class TestPersistence:
         dns_counter_mock.save_state()
 
         # Verify file exists
-        assert temp_persistence_file.exists(), "Persistence file should exist after save"
+        assert (
+            temp_persistence_file.exists()
+        ), "Persistence file should exist after save"
 
         # Load state
         loaded_time = dns_counter_mock.load_state()
@@ -119,18 +122,22 @@ class TestPersistence:
         dns_counter_mock.save_state()
 
         # Read and parse JSON
-        with open(temp_persistence_file, 'r') as f:
+        with open(temp_persistence_file, "r") as f:
             data = json.load(f)
 
-        assert 'version' in data, "JSON should contain 'version' key"
-        assert 'last_reset' in data, "JSON should contain 'last_reset' key"
-        assert data['version'] == 1, "Version should be 1"
-        assert data['last_reset'] == test_time.isoformat(), "last_reset should be ISO format"
+        assert "version" in data, "JSON should contain 'version' key"
+        assert "last_reset" in data, "JSON should contain 'last_reset' key"
+        assert data["version"] == 1, "Version should be 1"
+        assert (
+            data["last_reset"] == test_time.isoformat()
+        ), "last_reset should be ISO format"
 
-    def test_persistence_corruption_invalid_json(self, dns_counter_mock, temp_persistence_file):
+    def test_persistence_corruption_invalid_json(
+        self, dns_counter_mock, temp_persistence_file
+    ):
         """Malformed JSON should fall back to datetime.now()."""
         # Write invalid JSON
-        with open(temp_persistence_file, 'w') as f:
+        with open(temp_persistence_file, "w") as f:
             f.write("{invalid json")
 
         # Freeze time to verify fallback
@@ -138,19 +145,25 @@ class TestPersistence:
             loaded_time = dns_counter_mock.load_state()
             expected_time = datetime(2026, 1, 25, 15, 0, 0)
 
-            assert loaded_time == expected_time, f"Should fall back to current time, got {loaded_time}"
+            assert (
+                loaded_time == expected_time
+            ), f"Should fall back to current time, got {loaded_time}"
 
-    def test_persistence_corruption_missing_key(self, dns_counter_mock, temp_persistence_file):
+    def test_persistence_corruption_missing_key(
+        self, dns_counter_mock, temp_persistence_file
+    ):
         """Valid JSON missing 'last_reset' key should fall back to datetime.now()."""
         # Write JSON missing last_reset
-        with open(temp_persistence_file, 'w') as f:
-            json.dump({'version': 1}, f)
+        with open(temp_persistence_file, "w") as f:
+            json.dump({"version": 1}, f)
 
         with freeze_time("2026-01-25 16:00:00"):
             loaded_time = dns_counter_mock.load_state()
             expected_time = datetime(2026, 1, 25, 16, 0, 0)
 
-            assert loaded_time == expected_time, f"Should fall back to current time, got {loaded_time}"
+            assert (
+                loaded_time == expected_time
+            ), f"Should fall back to current time, got {loaded_time}"
 
     def test_persistence_file_not_found(self, dns_counter_mock, temp_persistence_file):
         """Non-existent file should fall back to datetime.now()."""
@@ -162,12 +175,14 @@ class TestPersistence:
             loaded_time = dns_counter_mock.load_state()
             expected_time = datetime(2026, 1, 25, 17, 0, 0)
 
-            assert loaded_time == expected_time, f"Should fall back to current time, got {loaded_time}"
+            assert (
+                loaded_time == expected_time
+            ), f"Should fall back to current time, got {loaded_time}"
 
-    def test_persistence_atomic_write(self, dns_counter_mock, temp_persistence_file, monkeypatch):
+    def test_persistence_atomic_write(
+        self, dns_counter_mock, temp_persistence_file, monkeypatch
+    ):
         """save_state() should use atomic write (tempfile + rename)."""
-        import dns_counter
-
         # Track calls to tempfile.NamedTemporaryFile and os.rename
         original_tempfile = tempfile.NamedTemporaryFile
         original_rename = os.rename
@@ -184,8 +199,8 @@ class TestPersistence:
             rename_calls.append((src, dst))
             return original_rename(src, dst)
 
-        monkeypatch.setattr(tempfile, 'NamedTemporaryFile', mock_tempfile)
-        monkeypatch.setattr(os, 'rename', mock_rename)
+        monkeypatch.setattr(tempfile, "NamedTemporaryFile", mock_tempfile)
+        monkeypatch.setattr(os, "rename", mock_rename)
 
         # Perform save
         test_time = datetime(2026, 1, 25, 10, 30, 45)
@@ -195,24 +210,29 @@ class TestPersistence:
         # Verify tempfile was created in same directory as target
         assert len(tempfile_calls) == 1, "Should create exactly one tempfile"
         _, kwargs, temp_name = tempfile_calls[0]
-        assert kwargs.get('dir') == os.path.dirname(str(temp_persistence_file)), \
-            "Tempfile should be in same directory as target"
+        assert kwargs.get("dir") == os.path.dirname(
+            str(temp_persistence_file)
+        ), "Tempfile should be in same directory as target"
 
         # Verify rename was called
         assert len(rename_calls) == 1, "Should call rename exactly once"
         src, dst = rename_calls[0]
-        assert dst == str(temp_persistence_file), f"Should rename to {temp_persistence_file}"
+        assert dst == str(
+            temp_persistence_file
+        ), f"Should rename to {temp_persistence_file}"
 
-    def test_persistence_save_generic_exception(self, dns_counter_mock, temp_persistence_file, monkeypatch):
+    def test_persistence_save_generic_exception(
+        self, dns_counter_mock, temp_persistence_file, monkeypatch
+    ):
         """Generic exception during save should be caught and logged."""
-        import dns_counter
 
         # Mock json.dump to raise a generic Exception
         def mock_json_dump(*args, **kwargs):
             raise RuntimeError("Simulated file system error")
 
         import json
-        monkeypatch.setattr(json, 'dump', mock_json_dump)
+
+        monkeypatch.setattr(json, "dump", mock_json_dump)
 
         # Save should not crash despite exception
         test_time = datetime(2026, 1, 25, 10, 30, 45)
@@ -221,17 +241,19 @@ class TestPersistence:
         # This should catch the exception and log it (lines 90-91)
         dns_counter_mock.save_state()  # Should not raise
 
-    def test_persistence_load_generic_exception(self, dns_counter_mock, temp_persistence_file):
-        """Generic exception during load (e.g., PermissionError) should fall back to datetime.now()."""
-        import dns_counter
-
+    def test_persistence_load_generic_exception(
+        self, dns_counter_mock, temp_persistence_file
+    ):
+        """Generic exception during load should fall back to datetime.now()."""
         # Create a valid file first
-        with open(temp_persistence_file, 'w') as f:
-            json.dump({'last_reset': '2026-01-25T10:30:45', 'version': 1}, f)
+        with open(temp_persistence_file, "w") as f:
+            json.dump({"last_reset": "2026-01-25T10:30:45", "version": 1}, f)
 
-        # Change file permissions to make it unreadable (triggers PermissionError, not OSError in open)
+        # Change file permissions to make it unreadable
+        # (triggers PermissionError, not OSError in open)
         import os
         import stat
+
         os.chmod(temp_persistence_file, 0o000)
 
         try:
@@ -241,7 +263,9 @@ class TestPersistence:
                 loaded_time = dns_counter_mock.load_state()
                 expected_time = datetime(2026, 1, 25, 19, 0, 0)
 
-                assert loaded_time == expected_time, f"Should fall back to current time, got {loaded_time}"
+                assert (
+                    loaded_time == expected_time
+                ), f"Should fall back to current time, got {loaded_time}"
         finally:
             # Restore permissions for cleanup
             os.chmod(temp_persistence_file, stat.S_IRUSR | stat.S_IWUSR)
@@ -252,18 +276,18 @@ class TestResetLogic:
 
     def test_reset_updates_timestamp(self, dns_counter_mock):
         """Button press should update last_reset to current time."""
-        import dns_counter
-
         # Mock datetime.now() to a known value
         with freeze_time("2026-01-25 18:00:00"):
             # Simulate reset
             dns_counter_mock.last_reset = datetime.now()
 
             expected_time = datetime(2026, 1, 25, 18, 0, 0)
-            assert dns_counter_mock.last_reset == expected_time, \
-                f"last_reset should be {expected_time}, got {dns_counter_mock.last_reset}"
+            assert dns_counter_mock.last_reset == expected_time, (
+                f"last_reset should be {expected_time}, "
+                f"got {dns_counter_mock.last_reset}"
+            )
 
-    @patch('time.time')
+    @patch("time.time")
     def test_debounce_prevents_multiple_resets(self, mock_time):
         """Two button presses within 0.3 seconds should only reset once."""
         # This test verifies the debounce logic in _check_button
@@ -287,11 +311,20 @@ class TestResetLogic:
         assert simulate_button_press(0.0) is True, "First press should succeed"
 
         # Second press at t=0.2 (0.2 - 0.0 = 0.2 < 0.3, should be ignored)
-        assert simulate_button_press(0.2) is False, "Second press within 0.3s should be ignored"
+        assert (
+            simulate_button_press(0.2) is False
+        ), "Second press within 0.3s should be ignored"
 
         # Third press at t=0.4 (0.4 - 0.0 = 0.4 > 0.3, should succeed)
-        assert simulate_button_press(0.4) is True, "Third press after 0.3s should succeed"
+        assert (
+            simulate_button_press(0.4) is True
+        ), "Third press after 0.3s should succeed"
 
         # Verify only 2 presses registered
-        assert len(button_presses) == 2, f"Expected 2 presses, got {len(button_presses)}"
-        assert button_presses == [0.0, 0.4], f"Expected presses at [0.0, 0.4], got {button_presses}"
+        assert (
+            len(button_presses) == 2
+        ), f"Expected 2 presses, got {len(button_presses)}"
+        assert button_presses == [
+            0.0,
+            0.4,
+        ], f"Expected presses at [0.0, 0.4], got {button_presses}"

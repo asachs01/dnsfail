@@ -1,16 +1,17 @@
 """Pytest fixtures for dns_counter tests."""
-import os
+
 import sys
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 # Mock hardware dependencies before any imports
-sys.modules['gpiod'] = MagicMock()
-sys.modules['rgbmatrix'] = MagicMock()
-sys.modules['PIL'] = MagicMock()
-sys.modules['PIL.Image'] = MagicMock()
-sys.modules['PIL.ImageDraw'] = MagicMock()
-sys.modules['PIL.ImageFont'] = MagicMock()
+sys.modules["gpiod"] = MagicMock()
+sys.modules["rgbmatrix"] = MagicMock()
+sys.modules["PIL"] = MagicMock()
+sys.modules["PIL.Image"] = MagicMock()
+sys.modules["PIL.ImageDraw"] = MagicMock()
+sys.modules["PIL.ImageFont"] = MagicMock()
 
 
 @pytest.fixture
@@ -32,7 +33,8 @@ def temp_persistence_file(tmp_path, monkeypatch):
 
     # Patch the PERSISTENCE_FILE constant in dns_counter module
     import dns_counter
-    monkeypatch.setattr(dns_counter, 'PERSISTENCE_FILE', str(temp_file))
+
+    monkeypatch.setattr(dns_counter, "PERSISTENCE_FILE", str(temp_file))
 
     yield temp_file
 
@@ -51,8 +53,9 @@ def mock_datetime(monkeypatch):
     Yields:
         datetime: Frozen datetime object
     """
-    from freezegun import freeze_time
     from datetime import datetime
+
+    from freezegun import freeze_time
 
     # Freeze at a specific moment: 2026-01-25 12:00:00
     frozen_time = "2026-01-25 12:00:00"
@@ -75,8 +78,9 @@ def dns_counter_mock(temp_persistence_file, monkeypatch):
     Yields:
         DNSCounter: Mock DNSCounter instance
     """
-    import dns_counter
     from datetime import datetime
+
+    import dns_counter
 
     # Mock the argparse to avoid command-line argument issues
     class MockArgs:
