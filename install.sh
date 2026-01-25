@@ -25,7 +25,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Check for required source files
-for f in "$MAIN_SCRIPT" "$REQUIREMENTS" "$FAIL_SOUND" "$SERVICE_FILE"; do
+for f in "$MAIN_SCRIPT" "$REQUIREMENTS" "$FAIL_SOUND" "$SERVICE_FILE" "config.yaml"; do
     if [ ! -f "$f" ]; then
         echo "ERROR: Missing required file '$f'. Make sure you are running from the project root directory."
         exit 1
@@ -61,7 +61,9 @@ echo "Copying application files..."
 cp "$MAIN_SCRIPT" "$APP_DIR/"
 cp "$FAIL_SOUND" "$MEDIA_DIR/"
 cp -r "$FONTS_SRC_DIR"/* "$FONTS_DIR/"
+cp config.yaml "$APP_DIR/"
 chmod 644 "$APP_DIR/$MAIN_SCRIPT"
+chmod 644 "$APP_DIR/config.yaml"
 echo "Files copied."
 
 echo "Installing Python requirements..."
@@ -102,6 +104,7 @@ FILES_TO_CHECK=(
     "$MEDIA_DIR/$FAIL_SOUND"
     "$FONTS_DIR/tom-thumb.bdf" # Check for a known font file
     "$SERVICE_DEST"
+    "$APP_DIR/config.yaml"
 )
 for f in "${FILES_TO_CHECK[@]}"; do
     if [ ! -f "$f" ]; then
