@@ -9,6 +9,7 @@ brightness: 80  # LED matrix brightness (1-100)
 
 # Audio Configuration - use container path
 audio_file: /app/fail.mp3
+audio_device: hw:2,0  # bcm2835 Headphones (3.5mm jack)
 
 # Web Server Configuration
 web_port: 5000

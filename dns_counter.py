@@ -768,8 +768,10 @@ class DNSCounter(object):
 
         # Get absolute path to sound file from config
         sound_file = self.config["audio_file"]
+        audio_device = self.config.get("audio_device", "")  # Optional device
         logger.debug(f"Sound file path: {sound_file}")
         logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
+        logger.debug(f"Audio device: {audio_device or 'default'}")
 
         # Set up environment with /tmp as home
         env = os.environ.copy()
@@ -792,8 +794,12 @@ class DNSCounter(object):
                                 self.save_state()  # Save the new reset time
                                 try:
                                     logger.debug("Attempting to play sound...")
+                                    aplay_cmd = ["aplay"]
+                                    if audio_device:
+                                        aplay_cmd.extend(["-D", audio_device])
+                                    aplay_cmd.append(sound_file)
                                     result = subprocess.run(
-                                        ["aplay", sound_file],
+                                        aplay_cmd,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
