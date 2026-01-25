@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
 import os
-import gpiod  # Replace lgpio with gpiod
-from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+import sys
+
+# Mock mode support - inject mocks before importing hardware libraries
+if '--mock' in sys.argv or os.environ.get('MOCK_MODE') == '1':
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'mocks'))
+    # Rename imports to use mock_ prefix in path
+    import mock_gpiod as gpiod
+    import mock_rgbmatrix as rgbmatrix_module
+    RGBMatrix = rgbmatrix_module.RGBMatrix
+    RGBMatrixOptions = rgbmatrix_module.RGBMatrixOptions
+    graphics = rgbmatrix_module.graphics
+else:
+    import gpiod
+    from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+
 from PIL import Image, ImageDraw, ImageFont
 import time
 import datetime
@@ -14,7 +27,15 @@ import json
 import tempfile
 
 # Persistence file for last_reset timestamp
-PERSISTENCE_FILE = '/usr/local/share/dnsfail/last_reset.json'
+# Use /tmp in mock mode for easier Docker access
+if '--mock' in sys.argv or os.environ.get('MOCK_MODE') == '1':
+    PERSISTENCE_FILE = '/tmp/last_reset.json'
+    FONT_DIR = './fonts'
+    SOUND_FILE = './fail.mp3'
+else:
+    PERSISTENCE_FILE = '/usr/local/share/dnsfail/last_reset.json'
+    FONT_DIR = '/usr/local/share/dnsfail/fonts'
+    SOUND_FILE = '/usr/local/share/dnsfail/media/fail.wav'
 
 # Set up logging with more detail
 logger = logging.getLogger('dns_counter')
@@ -91,37 +112,40 @@ class DNSCounter(object):
             logger.error(f"Failed to save state to {PERSISTENCE_FILE}: {e}")
 
     def load_state(self):
-                """Loads the last_reset timestamp from a JSON file.
-        
-                Returns:
-                    datetime: The loaded datetime object, or datetime.now() if loading fails.
-                """
-                if not os.path.exists(PERSISTENCE_FILE):
-                    logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
-                    return datetime.now()
-        
-                try:
-                    with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    
-                    last_reset_str = data.get('last_reset')
-                    if last_reset_str:
-                        loaded_time = datetime.fromisoformat(last_reset_str)
-                        logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
-                        return loaded_time
-                    else:
-                        logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
-                        return datetime.now()
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
-                    return datetime.now()
-                except Exception as e:
-                    logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
-                    return datetime.now()
-        
-            def create_parser(self):
+        """Loads the last_reset timestamp from a JSON file.
+
+        Returns:
+            datetime: The loaded datetime object, or datetime.now() if loading fails.
+        """
+        if not os.path.exists(PERSISTENCE_FILE):
+            logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
+            return datetime.now()
+
+        try:
+            with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            last_reset_str = data.get('last_reset')
+            if last_reset_str:
+                loaded_time = datetime.fromisoformat(last_reset_str)
+                logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
+                return loaded_time
+            else:
+                logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
+                return datetime.now()
+        except json.JSONDecodeError as e:
+            logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
+            return datetime.now()
+        except Exception as e:
+            logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
+            return datetime.now()
+
+    def create_parser(self):
         import argparse
         parser = argparse.ArgumentParser()
+
+        # Mock mode argument
+        parser.add_argument("--mock", action="store_true", help="Run in mock mode without hardware dependencies")
 
         # Matrix arguments
         parser.add_argument("--led-rows", action="store", help="Display rows. 16 for 16x32, 32 for 32x32. Default: 32", type=int, default=32)
@@ -235,15 +259,13 @@ class DNSCounter(object):
         try:
             logger.info("Starting display loop...")
             canvas = self.matrix.CreateFrameCanvas()
-            
-            # Use system font directory
-            font_dir = "/usr/local/share/dnsfail/fonts"
-            
+
+            # Use configured font directory
             header_font = graphics.Font()
-            header_font.LoadFont(os.path.join(font_dir, "6x10.bdf"))
+            header_font.LoadFont(os.path.join(FONT_DIR, "6x10.bdf"))
             
             time_font = graphics.Font()
-            time_font.LoadFont(os.path.join(font_dir, "5x8.bdf"))  # More readable size
+            time_font.LoadFont(os.path.join(FONT_DIR, "5x8.bdf"))  # More readable size
             
             # Create colors
             white = graphics.Color(255, 255, 255)
@@ -332,11 +354,9 @@ class DNSCounter(object):
         last_value = None
         logger.info("Button monitoring started")
         logger.info(f"Initial button state: {self.line.get_value()}")
-        
-        # Get absolute path to sound file
-        sound_file = '/usr/local/share/dnsfail/media/fail.wav'
-        logger.debug(f"Sound file path: {sound_file}")
-        logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
+
+        # Get configured sound file path
+        logger.debug(f"Sound file exists: {os.path.exists(SOUND_FILE)}")
         
         # Set up environment with /tmp as home
         env = os.environ.copy()
@@ -361,7 +381,7 @@ class DNSCounter(object):
                                     logger.debug("Attempting to play sound...")
                                     result = subprocess.run([
                                         'aplay',
-                                        sound_file
+                                        SOUND_FILE
                                     ], stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
                                        text=True,
