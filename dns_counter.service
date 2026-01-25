@@ -6,9 +6,9 @@ After=network.target
 # Set GPIO permissions before starting
 ExecStartPre=/bin/chmod 666 /dev/gpiochip0
 ExecStartPre=/bin/chown root:gpio /dev/gpiochip0
-ExecStart=/usr/bin/python3 /home/asachs/dnsfail/dns_counter.py
+ExecStart=/usr/bin/python3 /usr/local/share/dnsfail/dns_counter.py
 RuntimeDirectory=dnsfail
-WorkingDirectory=/var/run/dnsfail
+WorkingDirectory=/usr/local/share/dnsfail
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
