@@ -56,14 +56,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install gpiod Python bindings
 RUN pip install --no-cache-dir gpiod
 
-# Build and install rpi-rgb-led-matrix (without optional Pillow support)
-# Note: We remove the Pillow shim files before build since we don't need image support
+# Build and install rpi-rgb-led-matrix
+# Note: The library requires building the C++ library first, then the Python bindings
+# We skip Pillow support to avoid header dependency
 RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
     cd /tmp/matrix && \
     make -C lib && \
-    cd /tmp/matrix/bindings/python && \
+    cd bindings/python && \
     rm -f rgbmatrix/shims/pillow.c rgbmatrix/shims/pillow.h && \
-    CFLAGS="-I../../include" pip install --no-cache-dir . && \
+    python3 setup.py build_ext --inplace && \
+    python3 setup.py install && \
     rm -rf /tmp/matrix
 
 # Copy application code
