@@ -7,8 +7,8 @@ gpio_pin: 19  # GPIO pin number for reset button (BCM numbering)
 # Display Configuration
 brightness: 80  # LED matrix brightness (1-100)
 
-# Audio Configuration - use container path
-audio_file: /app/fail.mp3
+# Audio Configuration - use host-mounted path with WAV file
+audio_file: /usr/local/share/dnsfail/media/fail.wav
 audio_device: hw:2,0  # bcm2835 Headphones (3.5mm jack)
 
 # Web Server Configuration
