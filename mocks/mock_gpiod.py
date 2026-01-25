@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Mock implementation of gpiod library for Docker development."""
-import os
 import logging
+import os
 
-logger = logging.getLogger('dns_counter')
+logger = logging.getLogger("dns_counter")
 
 # Module-level constants
 LINE_REQ_DIR_IN = 1
@@ -21,11 +21,14 @@ class Line:
     def request(self, consumer=None, type=None, flags=None):
         """Mock request - stores configuration."""
         self.consumer = consumer
-        logger.debug(f"Line {self.pin} requested: consumer={consumer}, type={type}, flags={flags}")
+        logger.debug(
+            f"Line {self.pin} requested: consumer={consumer}, "
+            f"type={type}, flags={flags}"
+        )
 
     def get_value(self):
         """Mock get_value - returns 0 if MOCK_BUTTON_PRESS=1, else 1."""
-        if os.environ.get('MOCK_BUTTON_PRESS') == '1':
+        if os.environ.get("MOCK_BUTTON_PRESS") == "1":
             logger.debug(f"Line {self.pin} get_value: 0 (simulated button press)")
             return 0
         logger.debug(f"Line {self.pin} get_value: 1 (not pressed)")
@@ -39,7 +42,7 @@ class Line:
 class Chip:
     """Mock GPIO Chip class."""
 
-    def __init__(self, device_path='/dev/gpiochip0'):
+    def __init__(self, device_path="/dev/gpiochip0"):
         self.device_path = device_path
         self.lines = {}
         logger.info(f"Mock Chip opened: {device_path}")

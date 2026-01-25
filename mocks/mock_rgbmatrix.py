@@ -2,7 +2,7 @@
 """Mock implementation of rgbmatrix library for Docker development."""
 import logging
 
-logger = logging.getLogger('dns_counter')
+logger = logging.getLogger("dns_counter")
 
 
 class RGBMatrixOptions:
@@ -55,7 +55,9 @@ class RGBMatrix:
     def __init__(self, options=None):
         self.options = options or RGBMatrixOptions()
         self.canvas = MockCanvas(self.options.cols, self.options.rows)
-        logger.info(f"Mock RGBMatrix initialized: {self.options.cols}x{self.options.rows}")
+        logger.info(
+            f"Mock RGBMatrix initialized: {self.options.cols}x{self.options.rows}"
+        )
 
     def CreateFrameCanvas(self):
         """Return mock canvas."""
@@ -105,6 +107,7 @@ def DrawText(canvas, font, x, y, color, text):
 # Mock graphics module
 class _GraphicsModule:
     """Mock graphics module."""
+
     Color = Color
     Font = Font
     DrawText = staticmethod(DrawText)
