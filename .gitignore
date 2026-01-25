@@ -27,7 +27,6 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.env
 .venv
 env/
 venv/
@@ -35,6 +34,11 @@ ENV/
 env.bak/
 venv.bak/
 .python-version
+
+# Environment variables - NEVER commit secrets
+.env
+.env.local
+.env.*.local
 
 # RGB Matrix specific
 rgb-matrix.sh
@@ -50,7 +54,17 @@ rpi-rgb-led-matrix/
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
 
-.env
-.env.local
-.env.*.local
+# Dependency directories
+node_modules/
+
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
