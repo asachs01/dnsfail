@@ -1,0 +1,20 @@
+# DNS Counter Configuration for Docker Deployment
+# Use with: docker compose -f docker-compose.prod.yml up
+
+# GPIO Configuration
+gpio_pin: 19  # GPIO pin number for reset button (BCM numbering)
+
+# Display Configuration
+brightness: 80  # LED matrix brightness (1-100)
+
+# Audio Configuration - use container path
+audio_file: /app/fail.mp3
+
+# Web Server Configuration
+web_port: 5000
+
+# Persistence Configuration - host mount for reboot persistence
+persistence_file: /usr/local/share/dnsfail/last_reset.json
+
+# Logging Configuration
+log_level: INFO

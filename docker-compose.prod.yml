@@ -1,0 +1,43 @@
+version: '3.8'
+
+# Production configuration for running on Raspberry Pi hardware
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  dns-counter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Override entrypoint to run without --mock flag, use Docker config
+    entrypoint: ["python", "dns_counter.py", "--config", "/app/config.yaml"]
+    command: []
+    volumes:
+      # Application files
+      - ./dns_counter.py:/app/dns_counter.py
+      - ./fonts:/app/fonts
+      - ./fail.mp3:/app/fail.mp3
+      - ./config.docker.yaml:/app/config.yaml
+      # Persistence directory
+      - /usr/local/share/dnsfail:/usr/local/share/dnsfail
+      # Logs
+      - ./logs:/app/logs
+    devices:
+      # Sound devices for aplay
+      - /dev/snd:/dev/snd
+      # GPIO chip for button input
+      - /dev/gpiochip0:/dev/gpiochip0
+    environment:
+      - MOCK_MODE=0
+      - PYTHONUNBUFFERED=1
+      # Audio environment
+      - HOME=/tmp
+      - XDG_RUNTIME_DIR=/tmp
+    # Required for hardware access
+    privileged: true
+    # Or alternatively, use specific group permissions:
+    # group_add:
+    #   - audio
+    #   - gpio
+    restart: unless-stopped
+    # Network mode for potential web UI access
+    network_mode: host

@@ -1,9 +1,10 @@
 # Stage 1: Base image with dependencies
 FROM python:3.11-slim AS base
 
-# Install system dependencies
+# Install system dependencies including audio support
 RUN apt-get update && apt-get install -y \
     build-essential \
+    alsa-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
