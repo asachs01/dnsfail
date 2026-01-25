@@ -773,11 +773,18 @@ class DNSCounter(object):
         logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
         logger.debug(f"Audio device: {audio_device or 'default'}")
 
-        # Test audio device access at startup
-        test_result = subprocess.run(
-            ["aplay", "-l"], capture_output=True, text=True
-        )
-        logger.info(f"Audio devices at startup: {test_result.stdout[:200] if test_result.stdout else test_result.stderr[:200]}")
+        # Wait for audio devices to be fully available (container startup issue)
+        for attempt in range(10):
+            test_result = subprocess.run(
+                ["aplay", "-l"], capture_output=True, text=True
+            )
+            if "Headphones" in test_result.stdout:
+                logger.info(f"Audio devices ready after {attempt + 1} attempts")
+                break
+            logger.warning(f"Waiting for audio devices (attempt {attempt + 1}/10)...")
+            time.sleep(1)
+        else:
+            logger.error(f"Audio devices not fully available: {test_result.stdout[:200]}")
 
         while True:
             try:
