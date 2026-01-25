@@ -10,6 +10,11 @@ from datetime import datetime, timedelta
 import logging
 from logging.handlers import SysLogHandler
 import subprocess
+import json
+import tempfile
+
+# Persistence file for last_reset timestamp
+PERSISTENCE_FILE = '/usr/local/share/dnsfail/last_reset.json'
 
 # Set up logging with more detail
 logger = logging.getLogger('dns_counter')
@@ -63,8 +68,8 @@ class DNSCounter(object):
             logger.error(f"Failed to initialize matrix: {e}")
             raise
 
-        # Initialize the last reset time
-        self.last_reset = datetime.now()
+        # Initialize the last reset time from persistence or current time
+        self.last_reset = self.load_state()
         logger.info(f"Counter initialized with start time: {self.last_reset}")
 
         # Initialize GPIO for button
@@ -73,7 +78,48 @@ class DNSCounter(object):
         self.line = None
         self.setup_gpio()
 
-    def create_parser(self):
+    def save_state(self):
+        """Saves the last_reset timestamp to a JSON file atomically."""
+        try:
+            data = {'last_reset': self.last_reset.isoformat(), 'version': 1}
+            # Use a temporary file for atomic write
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=os.path.dirname(PERSISTENCE_FILE), encoding='utf-8') as tf:
+                json.dump(data, tf)
+            os.rename(tf.name, PERSISTENCE_FILE)
+            logger.debug(f"Saved state to {PERSISTENCE_FILE}: {data}")
+        except Exception as e:
+            logger.error(f"Failed to save state to {PERSISTENCE_FILE}: {e}")
+
+    def load_state(self):
+                """Loads the last_reset timestamp from a JSON file.
+        
+                Returns:
+                    datetime: The loaded datetime object, or datetime.now() if loading fails.
+                """
+                if not os.path.exists(PERSISTENCE_FILE):
+                    logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
+                    return datetime.now()
+        
+                try:
+                    with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    last_reset_str = data.get('last_reset')
+                    if last_reset_str:
+                        loaded_time = datetime.fromisoformat(last_reset_str)
+                        logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
+                        return loaded_time
+                    else:
+                        logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
+                        return datetime.now()
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
+                    return datetime.now()
+                except Exception as e:
+                    logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
+                    return datetime.now()
+        
+            def create_parser(self):
         import argparse
         parser = argparse.ArgumentParser()
 
@@ -310,6 +356,7 @@ class DNSCounter(object):
                             if current_time - last_press > 0.3:  # Simple debounce
                                 logger.info("Button press detected - Resetting counter")
                                 self.last_reset = datetime.now()
+                                self.save_state()  # Save the new reset time
                                 try:
                                     logger.debug("Attempting to play sound...")
                                     result = subprocess.run([
