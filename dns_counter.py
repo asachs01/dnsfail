@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import yaml
 import gpiod  # Replace lgpio with gpiod
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 from PIL import Image, ImageDraw, ImageFont
@@ -12,9 +13,6 @@ from logging.handlers import SysLogHandler
 import subprocess
 import json
 import tempfile
-
-# Persistence file for last_reset timestamp
-PERSISTENCE_FILE = '/usr/local/share/dnsfail/last_reset.json'
 
 # Set up logging with more detail
 logger = logging.getLogger('dns_counter')
@@ -37,10 +35,65 @@ try:
 except (OSError, IOError) as e:
     logger.warning(f"Could not initialize syslog handler: {e}")
 
+def load_config(config_path='/usr/local/share/dnsfail/config.yaml'):
+    """Load configuration from YAML file with fallback to defaults.
+
+    Args:
+        config_path: Path to YAML configuration file
+
+    Returns:
+        dict: Configuration dictionary with all required keys
+    """
+    DEFAULT_CONFIG = {
+        'gpio_pin': 19,
+        'brightness': 80,
+        'audio_file': '/usr/local/share/dnsfail/media/fail.wav',
+        'web_port': 5000,
+        'persistence_file': '/usr/local/share/dnsfail/last_reset.json',
+        'log_level': 'INFO'
+    }
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            loaded_config = yaml.safe_load(f)
+
+        # Merge loaded config into defaults (loaded values override)
+        if loaded_config:
+            config = DEFAULT_CONFIG.copy()
+            config.update(loaded_config)
+            logger.info(f"Configuration loaded from {config_path}")
+            return config
+        else:
+            logger.warning(f"Config file {config_path} is empty, using defaults")
+            return DEFAULT_CONFIG
+
+    except FileNotFoundError:
+        logger.warning(f"Config file not found at {config_path}, using defaults")
+        return DEFAULT_CONFIG
+    except yaml.YAMLError as e:
+        logger.error(f"Error parsing YAML config at {config_path}: {e}, using defaults")
+        return DEFAULT_CONFIG
+    except Exception as e:
+        logger.error(f"Unexpected error loading config from {config_path}: {e}, using defaults")
+        return DEFAULT_CONFIG
+
 class DNSCounter(object):
     def __init__(self):
         self.parser = self.create_parser()
         self.args = self.parser.parse_args()
+
+        # Load configuration before initializing hardware
+        self.config = load_config(self.args.config)
+
+        # Set log level from config
+        try:
+            logger.setLevel(getattr(logging, self.config['log_level']))
+        except (AttributeError, TypeError):
+            logger.warning(f"Invalid log_level '{self.config['log_level']}' in config, falling back to INFO")
+            logger.setLevel(logging.INFO)
+
+        # Set instance variables from config
+        self.persistence_file = self.config['persistence_file']
 
         logger.info("Initializing RGB Matrix...")
         options = RGBMatrixOptions()
@@ -51,7 +104,7 @@ class DNSCounter(object):
         options.row_address_type = self.args.led_row_addr
         options.multiplexing = self.args.led_multiplexing
         options.pwm_bits = 11  # Maximum PWM bits for smoother transitions
-        options.brightness = 80  # Lower brightness can help with flicker
+        options.brightness = self.config['brightness']  # Use config value
         options.pwm_lsb_nanoseconds = 130  # Default timing
         options.led_rgb_sequence = self.args.led_rgb_sequence
         options.pixel_mapper_config = self.args.led_pixel_mapper
@@ -73,7 +126,7 @@ class DNSCounter(object):
         logger.info(f"Counter initialized with start time: {self.last_reset}")
 
         # Initialize GPIO for button
-        self.BUTTON_PIN = 19  # Using GPIO19 which is free
+        self.BUTTON_PIN = self.config['gpio_pin']  # Use config value
         self.chip = None
         self.line = None
         self.setup_gpio()
@@ -83,12 +136,12 @@ class DNSCounter(object):
         try:
             data = {'last_reset': self.last_reset.isoformat(), 'version': 1}
             # Use a temporary file for atomic write
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=os.path.dirname(PERSISTENCE_FILE), encoding='utf-8') as tf:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=os.path.dirname(self.persistence_file), encoding='utf-8') as tf:
                 json.dump(data, tf)
-            os.rename(tf.name, PERSISTENCE_FILE)
-            logger.debug(f"Saved state to {PERSISTENCE_FILE}: {data}")
+            os.rename(tf.name, self.persistence_file)
+            logger.debug(f"Saved state to {self.persistence_file}: {data}")
         except Exception as e:
-            logger.error(f"Failed to save state to {PERSISTENCE_FILE}: {e}")
+            logger.error(f"Failed to save state to {self.persistence_file}: {e}")
 
     def load_state(self):
         """Loads the last_reset timestamp from a JSON file.
@@ -96,27 +149,27 @@ class DNSCounter(object):
         Returns:
             datetime: The loaded datetime object, or datetime.now() if loading fails.
         """
-        if not os.path.exists(PERSISTENCE_FILE):
-            logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
+        if not os.path.exists(self.persistence_file):
+            logger.warning(f"Persistence file not found at {self.persistence_file}. Initializing with current time.")
             return datetime.now()
 
         try:
-            with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
+            with open(self.persistence_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
             last_reset_str = data.get('last_reset')
             if last_reset_str:
                 loaded_time = datetime.fromisoformat(last_reset_str)
-                logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
+                logger.info(f"Loaded last_reset from {self.persistence_file}: {loaded_time}")
                 return loaded_time
             else:
-                logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
+                logger.warning(f" 'last_reset' key not found in {self.persistence_file}. Initializing with current time.")
                 return datetime.now()
         except json.JSONDecodeError as e:
-            logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
+            logger.warning(f"Persistence file {self.persistence_file} is corrupt ({e}). Initializing with current time.")
             return datetime.now()
         except Exception as e:
-            logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
+            logger.error(f"An unexpected error occurred while loading state from {self.persistence_file}: {e}. Initializing with current time.")
             return datetime.now()
 
     def create_parser(self):
@@ -138,6 +191,7 @@ class DNSCounter(object):
         parser.add_argument("--led-pixel-mapper", action="store", help="Apply pixel mappers. Default: \"\"", type=str, default="")
         parser.add_argument("--led-rgb-sequence", action="store", help="Switch if your matrix has led colors swapped. Default: RGB", type=str, default="RGB")
         parser.add_argument("--led-slowdown-gpio", action="store", help="Slowdown GPIO. Higher value, slower but less flicker. Range: 0..4", type=int, default=4)
+        parser.add_argument("--config", action="store", help="Path to configuration file", type=str, default='/usr/local/share/dnsfail/config.yaml')
 
         return parser
 
@@ -332,9 +386,9 @@ class DNSCounter(object):
         last_value = None
         logger.info("Button monitoring started")
         logger.info(f"Initial button state: {self.line.get_value()}")
-        
-        # Get absolute path to sound file
-        sound_file = '/usr/local/share/dnsfail/media/fail.wav'
+
+        # Get absolute path to sound file from config
+        sound_file = self.config['audio_file']
         logger.debug(f"Sound file path: {sound_file}")
         logger.debug(f"Sound file exists: {os.path.exists(sound_file)}")
         
