@@ -209,8 +209,9 @@ class DNSCounter(object):
         # Initialize GPIO for button
         self.BUTTON_PIN: int = self.config["gpio_pin"]  # Use config value
         self.chip: Optional[gpiod.Chip] = None
-        self.line: Optional[gpiod.Line] = None
+        self.line: Any = None  # gpiod.Line (v1) or LineRequest (v2)
         self.button_thread: Optional[threading.Thread] = None
+        self._gpiod_version: int = 1  # Will be set by setup_gpio
         self.setup_gpio()
 
     def save_state(self) -> None:
@@ -686,18 +687,36 @@ class DNSCounter(object):
             Logs errors but does not raise exceptions. Sets chip and line to None
             on failure, allowing the display to continue working without button input.
             Thread is daemon so it won't prevent program exit.
+            Supports both gpiod v1 and v2 APIs.
         """
         try:
-            # Open GPIO chip using gpiod
-            self.chip = gpiod.Chip("/dev/gpiochip0")
-
-            # Get the GPIO line and configure it as input with pull-up
-            self.line = self.chip.get_line(self.BUTTON_PIN)
-            self.line.request(
-                consumer="dns_counter",
-                type=gpiod.LINE_REQ_DIR_IN,
-                flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP,
-            )
+            # Detect gpiod API version and use appropriate method
+            if hasattr(gpiod, "request_lines"):
+                # gpiod v2 API
+                self._gpiod_version = 2
+                logger.info("Using gpiod v2 API")
+                self.line = gpiod.request_lines(
+                    "/dev/gpiochip0",
+                    consumer="dns_counter",
+                    config={
+                        self.BUTTON_PIN: gpiod.LineSettings(
+                            direction=gpiod.line.Direction.INPUT,
+                            bias=gpiod.line.Bias.PULL_UP,
+                        )
+                    },
+                )
+                self.chip = None  # Not needed in v2
+            else:
+                # gpiod v1 API
+                self._gpiod_version = 1
+                logger.info("Using gpiod v1 API")
+                self.chip = gpiod.Chip("/dev/gpiochip0")
+                self.line = self.chip.get_line(self.BUTTON_PIN)
+                self.line.request(
+                    consumer="dns_counter",
+                    type=gpiod.LINE_REQ_DIR_IN,
+                    flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP,
+                )
 
             logger.info("GPIO setup successful with pull-up enabled")
 
@@ -712,6 +731,22 @@ class DNSCounter(object):
             logger.error("Try running: sudo chmod 660 /dev/gpiochip0")
             self.chip = None
             self.line = None
+
+    def _get_button_value(self) -> int:
+        """Read button value, handling both gpiod v1 and v2 APIs.
+
+        Returns:
+            0 if button is pressed (active low), 1 if released.
+        """
+        if self._gpiod_version == 2:
+            # v2 API: get_value takes pin number, returns Value enum
+            val = self.line.get_value(self.BUTTON_PIN)
+            # Value.INACTIVE = 0 (button pressed with pull-up)
+            # Value.ACTIVE = 1 (button released)
+            return 0 if val == gpiod.line.Value.INACTIVE else 1
+        else:
+            # v1 API: get_value returns int directly
+            return self.line.get_value()
 
     def _check_button(self) -> None:
         """Thread function to continuously monitor button state.
@@ -729,7 +764,7 @@ class DNSCounter(object):
         last_press = 0
         last_value = None
         logger.info("Button monitoring started")
-        logger.info(f"Initial button state: {self.line.get_value()}")
+        logger.info(f"Initial button state: {self._get_button_value()}")
 
         # Get absolute path to sound file from config
         sound_file = self.config["audio_file"]
@@ -744,7 +779,7 @@ class DNSCounter(object):
         while True:
             try:
                 if self.line:
-                    value = self.line.get_value()
+                    value = self._get_button_value()
                     if value != last_value:
                         logger.debug(f"Button state changed to: {value}")
                         last_value = value
