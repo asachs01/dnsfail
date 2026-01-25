@@ -64,8 +64,7 @@ RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
     make -C lib && \
     cd bindings/python && \
     rm -f rgbmatrix/shims/pillow.c rgbmatrix/shims/pillow.h && \
-    sed -i '/pillow/d' rgbmatrix/shims/__init__.py 2>/dev/null || true && \
-    cat setup.py | grep -v 'shims/pillow.c' > setup_nopil.py && mv setup_nopil.py setup.py && \
+    sed -i "s/, 'rgbmatrix\/shims\/pillow.c'//" setup.py && \
     make build-python PYTHON=$(which python3) && \
     make install-python PYTHON=$(which python3) && \
     rm -rf /tmp/matrix
