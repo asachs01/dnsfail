@@ -91,35 +91,35 @@ class DNSCounter(object):
             logger.error(f"Failed to save state to {PERSISTENCE_FILE}: {e}")
 
     def load_state(self):
-                """Loads the last_reset timestamp from a JSON file.
-        
-                Returns:
-                    datetime: The loaded datetime object, or datetime.now() if loading fails.
-                """
-                if not os.path.exists(PERSISTENCE_FILE):
-                    logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
-                    return datetime.now()
-        
-                try:
-                    with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    
-                    last_reset_str = data.get('last_reset')
-                    if last_reset_str:
-                        loaded_time = datetime.fromisoformat(last_reset_str)
-                        logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
-                        return loaded_time
-                    else:
-                        logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
-                        return datetime.now()
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
-                    return datetime.now()
-                except Exception as e:
-                    logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
-                    return datetime.now()
-        
-            def create_parser(self):
+        """Loads the last_reset timestamp from a JSON file.
+
+        Returns:
+            datetime: The loaded datetime object, or datetime.now() if loading fails.
+        """
+        if not os.path.exists(PERSISTENCE_FILE):
+            logger.warning(f"Persistence file not found at {PERSISTENCE_FILE}. Initializing with current time.")
+            return datetime.now()
+
+        try:
+            with open(PERSISTENCE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            last_reset_str = data.get('last_reset')
+            if last_reset_str:
+                loaded_time = datetime.fromisoformat(last_reset_str)
+                logger.info(f"Loaded last_reset from {PERSISTENCE_FILE}: {loaded_time}")
+                return loaded_time
+            else:
+                logger.warning(f" 'last_reset' key not found in {PERSISTENCE_FILE}. Initializing with current time.")
+                return datetime.now()
+        except json.JSONDecodeError as e:
+            logger.warning(f"Persistence file {PERSISTENCE_FILE} is corrupt ({e}). Initializing with current time.")
+            return datetime.now()
+        except Exception as e:
+            logger.error(f"An unexpected error occurred while loading state from {PERSISTENCE_FILE}: {e}. Initializing with current time.")
+            return datetime.now()
+
+    def create_parser(self):
         import argparse
         parser = argparse.ArgumentParser()
 
