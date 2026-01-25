@@ -57,14 +57,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir gpiod
 
 # Build and install rpi-rgb-led-matrix with Python bindings
-# We need to remove the optional Pillow shim which requires Imaging.h header
-# The shim provides PIL Image compatibility which we don't need for this project
+# Create stub pillow shim files since we don't need PIL Image support
 RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
     cd /tmp/matrix && \
     make -C lib && \
     cd bindings/python && \
-    rm -f rgbmatrix/shims/pillow.c rgbmatrix/shims/pillow.h && \
-    sed -i "s/, 'rgbmatrix\/shims\/pillow.c'//" setup.py && \
+    printf '%s\n' '#ifndef SHIMS_PIL_H' '#define SHIMS_PIL_H' '#ifdef __cplusplus' 'extern "C" {' '#endif' 'int** get_image32(void* im);' '#ifdef __cplusplus' '}' '#endif' '#endif' > rgbmatrix/shims/pillow.h && \
+    printf '%s\n' '#include "pillow.h"' 'int** get_image32(void* im) { return 0; }' > rgbmatrix/shims/pillow.c && \
     make build-python PYTHON=$(which python3) && \
     make install-python PYTHON=$(which python3) && \
     rm -rf /tmp/matrix
