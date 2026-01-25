@@ -59,6 +59,54 @@ A Raspberry Pi-powered LED matrix display that shows the time since the last DNS
    sudo reboot
    ```
 
+## Docker Development Environment
+
+For development and testing without physical hardware:
+
+### Quick Start
+
+```bash
+# Build and run application in mock mode
+docker-compose up app
+
+# Run tests
+docker-compose --profile test up test
+
+# Interactive development
+docker-compose run --rm app /bin/bash
+```
+
+### Mock Mode Features
+
+- **No hardware dependencies required** - Runs completely in software
+- **Logs written to `./logs/` directory** - Persistent across container restarts
+- **State persisted to `/tmp/last_reset.json`** - Counter state survives container restarts
+- **Simulates button press** via `MOCK_BUTTON_PRESS=1` environment variable
+
+### Development Workflow
+
+1. **Edit `dns_counter.py` locally** - Changes reflect immediately in running container (volume mount)
+2. **View logs**: `docker-compose logs -f app`
+3. **Run tests**: `docker-compose --profile test up test`
+4. **Simulate button press**:
+   ```bash
+   MOCK_BUTTON_PRESS=1 docker-compose up app
+   ```
+5. **Stop container**: `docker-compose down`
+
+### Running Tests Locally
+
+```bash
+# Run all tests in Docker
+docker-compose --profile test up test
+
+# Run specific test file
+docker-compose run --rm test pytest tests/test_docker_mock.py -v
+
+# Run with coverage
+docker-compose run --rm test pytest --cov=dns_counter tests/
+```
+
 ### 3. Configuration
 
 1. **Test the Display:**
