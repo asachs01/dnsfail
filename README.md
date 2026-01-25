@@ -59,6 +59,54 @@ A Raspberry Pi-powered LED matrix display that shows the time since the last DNS
    sudo reboot
    ```
 
+## Docker Development Environment
+
+For development and testing without physical hardware:
+
+### Quick Start
+
+```bash
+# Build and run application in mock mode
+docker-compose up app
+
+# Run tests
+docker-compose --profile test up test
+
+# Interactive development
+docker-compose run --rm app /bin/bash
+```
+
+### Mock Mode Features
+
+- **No hardware dependencies required** - Runs completely in software
+- **Logs written to `./logs/` directory** - Persistent across container restarts
+- **State persisted to `/tmp/last_reset.json`** - Counter state survives container restarts
+- **Simulates button press** via `MOCK_BUTTON_PRESS=1` environment variable
+
+### Development Workflow
+
+1. **Edit `dns_counter.py` locally** - Changes reflect immediately in running container (volume mount)
+2. **View logs**: `docker-compose logs -f app`
+3. **Run tests**: `docker-compose --profile test up test`
+4. **Simulate button press**:
+   ```bash
+   MOCK_BUTTON_PRESS=1 docker-compose up app
+   ```
+5. **Stop container**: `docker-compose down`
+
+### Running Tests Locally
+
+```bash
+# Run all tests in Docker
+docker-compose --profile test up test
+
+# Run specific test file
+docker-compose run --rm test pytest tests/test_docker_mock.py -v
+
+# Run with coverage
+docker-compose run --rm test pytest --cov=dns_counter tests/
+```
+
 ### 3. Configuration
 
 1. **Test the Display:**
@@ -94,6 +142,38 @@ A Raspberry Pi-powered LED matrix display that shows the time since the last DNS
 4. **Service Not Starting:**
    - Check logs: `journalctl -u dns_counter`
    - Verify permissions: `ls -l /usr/local/share/dnsfail`
+
+## Development
+
+### Running Tests
+
+The project includes comprehensive unit tests for timer logic (duration formatting, persistence, and reset handling).
+
+1. **Install Development Dependencies:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Run All Tests:**
+   ```bash
+   pytest tests/ -v
+   ```
+
+3. **Run Tests with Coverage:**
+   ```bash
+   pytest tests/ --cov=dns_counter --cov-report=term-missing
+   ```
+
+4. **Coverage Target:**
+   - Overall timer logic: >80% coverage
+   - Tests are isolated and do not require hardware dependencies
+
+### Test Structure
+- `tests/test_timer.py`: Unit tests for timer functions
+- `tests/conftest.py`: Pytest fixtures and hardware mocks
+- Coverage reports available in `htmlcov/` directory
 
 ## Maintenance
 

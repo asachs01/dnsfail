@@ -1,3 +1,5 @@
 # Note: gpiod and rgbmatrix are system packages
 Flask>=2.0.0
 PyYAML>=6.0
+pytest>=7.0.0
+Pillow>=9.0.0

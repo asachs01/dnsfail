@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./dns_counter.py:/app/dns_counter.py
+      - ./mocks:/app/mocks
+      - ./logs:/app/logs
+    environment:
+      - MOCK_MODE=1
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: []
+    command: ["python", "-m", "pytest", "-v"]
+    volumes:
+      - ./dns_counter.py:/app/dns_counter.py
+      - ./mocks:/app/mocks
+      - ./tests:/app/tests
+      - ./logs:/app/logs
+    environment:
+      - MOCK_MODE=1
+      - PYTHONUNBUFFERED=1
+    profiles:
+      - test
