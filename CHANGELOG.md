@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Production Docker configuration (`docker-compose.prod.yml`) with hardware support
+- Docker config file (`config.docker.yaml`) for container deployments
+- Hardware device mapping for audio (`/dev/snd`) and GPIO (`/dev/gpiochip0`)
+- Stub implementations for rgbmatrix Pillow shim to avoid header dependency
+
+### Known Issues
+- Docker production mode has gpiod API version mismatch (v2 vs v1)
+- Audio playback requires WAV format; MP3 files need conversion or alternative player
+
 ## [0.1.0] - 2025-01-24
 ### Added
 - Core timer functionality for tracking DNS queries.
