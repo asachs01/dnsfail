@@ -1,3 +1,4 @@
+# Deploys Astro/Starlight docs to GitHub Pages
 name: Deploy Docs to GitHub Pages
 
 on:
