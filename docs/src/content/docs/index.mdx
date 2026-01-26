@@ -1,0 +1,63 @@
+---
+title: DNS Incident Timer
+description: Track time since your last DNS-related incident with a Raspberry Pi, LED matrix display, and satisfying reset button.
+template: splash
+hero:
+  tagline: Because someone needs to know how long it's been since DNS broke something.
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/asachs01/dnsfail
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is this?
+
+The DNS Incident Timer is a fun desk gadget that displays "Days Since Last DNS Incident" on an RGB LED matrix. When DNS inevitably causes problems, press the big red button to reset the counter and play a shameful audio clip.
+
+<CardGrid stagger>
+	<Card title="LED Matrix Display" icon="star">
+		Bright, visible counter showing days (or hours, or minutes) since the last incident.
+	</Card>
+	<Card title="Physical Reset Button" icon="warning">
+		Satisfying tactile button to reset the counter when DNS strikes again.
+	</Card>
+	<Card title="Audio Alerts" icon="setting">
+		Plays a customizable audio clip when the counter resets.
+	</Card>
+	<Card title="Web Interface" icon="laptop">
+		Optional web UI for remote monitoring and reset.
+	</Card>
+</CardGrid>
+
+## Quick Links
+
+<CardGrid>
+	<Card title="Hardware Requirements" icon="document">
+		See what you need to build your own timer.
+
+		[View requirements →](/getting-started/hardware/)
+	</Card>
+	<Card title="Docker Deployment" icon="rocket">
+		Run in a container with hardware access.
+
+		[Deploy with Docker →](/installation/docker/)
+	</Card>
+	<Card title="Configuration" icon="setting">
+		Customize GPIO pins, audio, and display settings.
+
+		[Configure →](/configuration/options/)
+	</Card>
+	<Card title="Troubleshooting" icon="warning">
+		Common issues and how to fix them.
+
+		[Get help →](/troubleshooting/common-issues/)
+	</Card>
+</CardGrid>

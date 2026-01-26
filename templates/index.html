@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Incident Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Pure neutral dark foundation - technical, focused */
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-elevated: #18181b;
+
+            /* Text hierarchy */
+            --text-primary: #fafafa;
+            --text-secondary: rgba(250, 250, 250, 0.7);
+            --text-muted: rgba(250, 250, 250, 0.5);
+            --text-faint: rgba(250, 250, 250, 0.3);
+
+            /* Accent - red for incident/failure context */
+            --accent: #ef4444;
+            --accent-hover: #dc2626;
+            --accent-glow: rgba(239, 68, 68, 0.15);
+
+            /* Borders */
+            --border: rgba(255, 255, 255, 0.08);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+
+            /* Grid system */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-6: 24px;
+            --space-8: 32px;
+
+            /* Border radius - sharp for technical feel */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-6);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-6);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .header .subtitle {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        /* Timer card */
+        .timer-card {
+            background: var(--bg-secondary);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            text-align: center;
+        }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-row {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+
+        .timer-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .timer-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 72px;
+        }
+
+        .timer-value {
+            font-size: 40px;
+            font-weight: 600;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: var(--space-1);
+        }
+
+        .timer-label {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Separator between rows */
+        .timer-separator {
+            width: 100%;
+            height: 1px;
+            background: var(--border-subtle);
+            margin: var(--space-4) 0;
+        }
+
+        /* Reset button */
+        .reset-button {
+            width: 100%;
+            padding: var(--space-4);
+            background: var(--accent);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            cursor: pointer;
+            transition: background 150ms cubic-bezier(0.25, 1, 0.5, 1),
+                        transform 150ms cubic-bezier(0.25, 1, 0.5, 1),
+                        box-shadow 150ms cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .reset-button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .reset-button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .reset-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Status indicator */
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-3);
+            background: var(--bg-elevated);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status.error .status-dot {
+            background: var(--accent);
+            animation: none;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: var(--space-6);
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-elevated);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-primary);
+            opacity: 0;
+            transition: transform 200ms cubic-bezier(0.25, 1, 0.5, 1),
+                        opacity 200ms cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+        }
+
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-faint);
+        }
+
+        .footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Days Since</h1>
+            <div class="subtitle">DNS Incident</div>
+        </div>
+
+        <div class="timer-card">
+            <div class="timer-display">
+                <div class="timer-row">
+                    <div class="timer-unit">
+                        <div class="timer-value" id="years">00</div>
+                        <div class="timer-label">Years</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="months">00</div>
+                        <div class="timer-label">Months</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="days">00</div>
+                        <div class="timer-label">Days</div>
+                    </div>
+                </div>
+                <div class="timer-separator"></div>
+                <div class="timer-row">
+                    <div class="timer-unit">
+                        <div class="timer-value" id="hours">00</div>
+                        <div class="timer-label">Hours</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="minutes">00</div>
+                        <div class="timer-label">Minutes</div>
+                    </div>
+                    <div class="timer-unit">
+                        <div class="timer-value" id="seconds">00</div>
+                        <div class="timer-label">Seconds</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="reset-button" id="resetBtn">Reset Counter</button>
+
+        <div class="status" id="status">
+            <div class="status-dot"></div>
+            <span>Connected to timer</span>
+        </div>
+
+        <div class="footer">
+            <a href="https://github.com/asachs01/dnsfail">DNS Incident Timer</a>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let lastReset = null;
+        let updateInterval = null;
+
+        // Format number with leading zero
+        function pad(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        // Calculate duration from last reset
+        function calculateDuration(lastResetDate) {
+            const now = new Date();
+            const diff = now - lastResetDate;
+
+            const totalSeconds = Math.floor(diff / 1000);
+            const totalDays = Math.floor(totalSeconds / 86400);
+
+            const years = Math.floor(totalDays / 365);
+            const months = Math.floor((totalDays % 365) / 30);
+            const days = (totalDays % 365) % 30;
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return { years, months, days, hours, minutes, seconds };
+        }
+
+        // Update the display
+        function updateDisplay() {
+            if (!lastReset) return;
+
+            const duration = calculateDuration(lastReset);
+
+            document.getElementById('years').textContent = pad(duration.years);
+            document.getElementById('months').textContent = pad(duration.months);
+            document.getElementById('days').textContent = pad(duration.days);
+            document.getElementById('hours').textContent = pad(duration.hours);
+            document.getElementById('minutes').textContent = pad(duration.minutes);
+            document.getElementById('seconds').textContent = pad(duration.seconds);
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2000);
+        }
+
+        // Update status indicator
+        function setStatus(connected, message) {
+            const status = document.getElementById('status');
+            const statusText = status.querySelector('span');
+            statusText.textContent = message;
+            if (connected) {
+                status.classList.remove('error');
+            } else {
+                status.classList.add('error');
+            }
+        }
+
+        // Fetch current state from server
+        async function fetchState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                lastReset = new Date(data.last_reset);
+                setStatus(true, 'Connected to timer');
+                updateDisplay();
+            } catch (error) {
+                console.error('Failed to fetch state:', error);
+                setStatus(false, 'Connection lost');
+            }
+        }
+
+        // Reset the counter
+        async function resetCounter() {
+            const btn = document.getElementById('resetBtn');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/reset', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    lastReset = new Date(data.last_reset);
+                    updateDisplay();
+                    showToast('Counter reset');
+                } else {
+                    showToast('Reset failed');
+                }
+            } catch (error) {
+                console.error('Failed to reset:', error);
+                showToast('Connection error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Initialize
+        document.getElementById('resetBtn').addEventListener('click', resetCounter);
+
+        // Initial fetch
+        fetchState();
+
+        // Update display every second
+        updateInterval = setInterval(updateDisplay, 1000);
+
+        // Refresh state every 30 seconds to stay in sync
+        setInterval(fetchState, 30000);
+    </script>
+</body>
+</html>

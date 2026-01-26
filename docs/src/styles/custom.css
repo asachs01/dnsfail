@@ -1,0 +1,13 @@
+/* DNS Timer Documentation - Custom Theme */
+
+:root {
+	--sl-color-accent-low: #1a1a4e;
+	--sl-color-accent: #ff4444;
+	--sl-color-accent-high: #ffaaaa;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #ffe8e8;
+	--sl-color-accent: #cc0000;
+	--sl-color-accent-high: #660000;
+}

@@ -13,6 +13,8 @@ services:
     volumes:
       # Application files
       - ./dns_counter.py:/app/dns_counter.py
+      - ./web_server.py:/app/web_server.py
+      - ./templates:/app/templates
       - ./fonts:/app/fonts
       - ./fail.mp3:/app/fail.mp3
       - ./config.docker.yaml:/app/config.yaml

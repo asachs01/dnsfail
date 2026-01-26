@@ -70,6 +70,8 @@ RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
 
 # Copy application code
 COPY dns_counter.py .
+COPY web_server.py .
+COPY templates/ ./templates/
 COPY fonts/ ./fonts/
 COPY fail.mp3 .
 

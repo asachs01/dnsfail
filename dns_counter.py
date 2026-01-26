@@ -831,9 +831,45 @@ class DNSCounter(object):
                 time.sleep(0.1)
 
 
+def start_web_server(dns_counter_instance: "DNSCounter") -> None:
+    """Start web server in a background thread.
+
+    Args:
+        dns_counter_instance: DNSCounter instance for shared state access
+    """
+    try:
+        from web_server import WebServer
+
+        # Create web server with same config
+        server = WebServer(config=dns_counter_instance.config)
+
+        # Run in background thread
+        web_thread = threading.Thread(
+            target=lambda: server.app.run(
+                host="0.0.0.0",
+                port=dns_counter_instance.config["web_port"],
+                debug=False,
+                threaded=True,
+                use_reloader=False,
+            ),
+            daemon=True,
+        )
+        web_thread.start()
+        logger.info(f"Web server started on port {dns_counter_instance.config['web_port']}")
+    except ImportError:
+        logger.warning("Flask not available, web server disabled")
+    except Exception as e:
+        logger.error(f"Failed to start web server: {e}")
+
+
 if __name__ == "__main__":
     try:
         dns_counter = DNSCounter()
+
+        # Start web server if enabled
+        if dns_counter.config.get("web_port"):
+            start_web_server(dns_counter)
+
         dns_counter.run()
     except Exception as e:
         logger.critical(f"Fatal error: {e}", exc_info=True)
