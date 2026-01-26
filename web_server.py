@@ -14,7 +14,7 @@ import os
 import subprocess
 import tempfile
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from flask import Flask, jsonify, render_template, request
@@ -108,7 +108,7 @@ class WebServer:
         def reset_timer():
             """Reset the timer and play audio."""
             try:
-                new_reset = datetime.now()
+                new_reset = datetime.now(timezone.utc)
                 self._save_state(new_reset)
                 self._play_audio()
 
@@ -132,11 +132,11 @@ class WebServer:
                     data = json.load(f)
                 return data
             except FileNotFoundError:
-                # If no state file, return current time
-                return {"last_reset": datetime.now().isoformat()}
+                # If no state file, return current time in UTC
+                return {"last_reset": datetime.now(timezone.utc).isoformat()}
             except Exception as e:
                 logger.error(f"Failed to load state: {e}")
-                return {"last_reset": datetime.now().isoformat()}
+                return {"last_reset": datetime.now(timezone.utc).isoformat()}
 
     def _save_state(self, last_reset: datetime) -> None:
         """Save state to persistence file using atomic write."""
