@@ -18,39 +18,39 @@ export default defineConfig({
 				{
 					label: 'Getting Started',
 					items: [
-						{ label: 'Introduction', link: '/dnsfail/getting-started/introduction/' },
-						{ label: 'Hardware Requirements', link: '/dnsfail/getting-started/hardware/' },
-						{ label: 'Quick Start', link: '/dnsfail/getting-started/quick-start/' },
+						{ label: 'Introduction', slug: 'getting-started/introduction' },
+						{ label: 'Hardware Requirements', slug: 'getting-started/hardware' },
+						{ label: 'Quick Start', slug: 'getting-started/quick-start' },
 					],
 				},
 				{
 					label: 'Installation',
 					items: [
-						{ label: 'Native Installation', link: '/dnsfail/installation/native/' },
-						{ label: 'Docker Deployment', link: '/dnsfail/installation/docker/' },
+						{ label: 'Native Installation', slug: 'installation/native' },
+						{ label: 'Docker Deployment', slug: 'installation/docker' },
 					],
 				},
 				{
 					label: 'Configuration',
 					items: [
-						{ label: 'Configuration Options', link: '/dnsfail/configuration/options/' },
-						{ label: 'GPIO Setup', link: '/dnsfail/configuration/gpio/' },
-						{ label: 'Audio Setup', link: '/dnsfail/configuration/audio/' },
-						{ label: 'Web Interface', link: '/dnsfail/configuration/web-interface/' },
+						{ label: 'Configuration Options', slug: 'configuration/options' },
+						{ label: 'GPIO Setup', slug: 'configuration/gpio' },
+						{ label: 'Audio Setup', slug: 'configuration/audio' },
+						{ label: 'Web Interface', slug: 'configuration/web-interface' },
 					],
 				},
 				{
 					label: 'Troubleshooting',
 					items: [
-						{ label: 'Common Issues', link: '/dnsfail/troubleshooting/common-issues/' },
-						{ label: 'Docker Issues', link: '/dnsfail/troubleshooting/docker/' },
+						{ label: 'Common Issues', slug: 'troubleshooting/common-issues' },
+						{ label: 'Docker Issues', slug: 'troubleshooting/docker' },
 					],
 				},
 				{
 					label: 'Reference',
 					items: [
-						{ label: 'Architecture', link: '/dnsfail/reference/architecture/' },
-						{ label: 'API', link: '/dnsfail/reference/api/' },
+						{ label: 'Architecture', slug: 'reference/architecture' },
+						{ label: 'API', slug: 'reference/api' },
 					],
 				},
 			],

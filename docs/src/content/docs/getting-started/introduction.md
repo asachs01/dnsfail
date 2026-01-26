@@ -94,5 +94,5 @@ A simple web UI allows:
 
 ## Next Steps
 
-- [Hardware Requirements](/getting-started/hardware/) - What you need to build one
-- [Quick Start](/getting-started/quick-start/) - Get up and running fast
+- [Hardware Requirements](/dnsfail/getting-started/hardware/) - What you need to build one
+- [Quick Start](/dnsfail/getting-started/quick-start/) - Get up and running fast

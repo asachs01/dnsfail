@@ -139,6 +139,6 @@ The LED matrix requires significant power:
 
 ## Next Steps
 
-- [Quick Start](/getting-started/quick-start/) - Assembly and initial setup
-- [Native Installation](/installation/native/) - Install on bare metal
-- [Docker Deployment](/installation/docker/) - Run in a container
+- [Quick Start](/dnsfail/getting-started/quick-start/) - Assembly and initial setup
+- [Native Installation](/dnsfail/installation/native/) - Install on bare metal
+- [Docker Deployment](/dnsfail/installation/docker/) - Run in a container

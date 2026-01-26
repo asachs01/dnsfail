@@ -10,7 +10,7 @@ Get your DNS Incident Timer up and running quickly.
 ## Prerequisites
 
 - Raspberry Pi with Raspberry Pi OS installed
-- Hardware assembled (see [Hardware Requirements](/getting-started/hardware/))
+- Hardware assembled (see [Hardware Requirements](/dnsfail/getting-started/hardware/))
 - SSH access to the Pi
 
 ## Installation
@@ -123,10 +123,10 @@ docker compose -f docker-compose.prod.yml restart
 2. Verify audio device: `aplay -l`
 3. Test audio: `speaker-test -c2 -t wav`
 
-See [Troubleshooting](/troubleshooting/common-issues/) for more help.
+See [Troubleshooting](/dnsfail/troubleshooting/common-issues/) for more help.
 
 ## Next Steps
 
-- [Configuration Options](/configuration/options/) - Customize behavior
-- [Docker Deployment](/installation/docker/) - Production container setup
-- [Architecture](/reference/architecture/) - How it all works
+- [Configuration Options](/dnsfail/configuration/options/) - Customize behavior
+- [Docker Deployment](/dnsfail/installation/docker/) - Production container setup
+- [Architecture](/dnsfail/reference/architecture/) - How it all works

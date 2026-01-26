@@ -217,5 +217,5 @@ Common causes:
 
 ## Next Steps
 
-- [Configuration Options](/configuration/options/) - Customize settings
-- [Docker Issues](/troubleshooting/docker/) - More troubleshooting
+- [Configuration Options](/dnsfail/configuration/options/) - Customize settings
+- [Docker Issues](/dnsfail/troubleshooting/docker/) - More troubleshooting

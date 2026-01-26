@@ -178,6 +178,6 @@ sudo systemctl daemon-reload
 
 ## Next Steps
 
-- [Configuration Options](/configuration/options/) - Customize settings
-- [GPIO Setup](/configuration/gpio/) - Button configuration
-- [Audio Setup](/configuration/audio/) - Audio configuration
+- [Configuration Options](/dnsfail/configuration/options/) - Customize settings
+- [GPIO Setup](/dnsfail/configuration/gpio/) - Button configuration
+- [Audio Setup](/dnsfail/configuration/audio/) - Audio configuration
