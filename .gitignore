@@ -5,6 +5,16 @@
 Icon
 ._*
 
+# IDE and tool configs
+.cursor/
+.roo/
+.roomodes
+.taskmaster/
+
+# Root-level node artifacts (docs/ has its own)
+/package-lock.json
+/node_modules/
+
 # Python files
 __pycache__/
 *.py[cod]
