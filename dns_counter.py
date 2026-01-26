@@ -30,7 +30,7 @@ import subprocess
 import tempfile
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from logging.handlers import SysLogHandler
 from typing import Any, Dict, Optional, Tuple
 
@@ -246,7 +246,7 @@ class DNSCounter(object):
         or has any other issues, returns the current time instead of failing.
 
         Returns:
-            datetime: The loaded datetime object, or datetime.now() if loading fails
+            datetime: The loaded datetime object, or datetime.now(timezone.utc) if loading fails
 
         Note:
             All errors during loading are logged but not raised, ensuring the
@@ -257,7 +257,7 @@ class DNSCounter(object):
                 f"Persistence file not found at {self.persistence_file}. "
                 "Initializing with current time."
             )
-            return datetime.now()
+            return datetime.now(timezone.utc)
 
         try:
             with open(self.persistence_file, "r", encoding="utf-8") as f:
@@ -275,19 +275,19 @@ class DNSCounter(object):
                     f"'last_reset' key not found in {self.persistence_file}. "
                     "Initializing with current time."
                 )
-                return datetime.now()
+                return datetime.now(timezone.utc)
         except json.JSONDecodeError as e:
             logger.warning(
                 f"Persistence file {self.persistence_file} is corrupt ({e}). "
                 "Initializing with current time."
             )
-            return datetime.now()
+            return datetime.now(timezone.utc)
         except Exception as e:
             logger.error(
                 f"An unexpected error occurred while loading state from "
                 f"{self.persistence_file}: {e}. Initializing with current time."
             )
-            return datetime.now()
+            return datetime.now(timezone.utc)
 
     def reset(self) -> datetime:
         """Reset the counter, save state, and play audio.
@@ -298,7 +298,7 @@ class DNSCounter(object):
         Returns:
             datetime: The new last_reset timestamp
         """
-        self.last_reset = datetime.now()
+        self.last_reset = datetime.now(timezone.utc)
         self.save_state()
 
         # Play audio
@@ -680,7 +680,7 @@ class DNSCounter(object):
                 )
 
                 # Calculate and draw time in two lines
-                duration = datetime.now() - self.last_reset
+                duration = datetime.now(timezone.utc) - self.last_reset
                 time_line1, time_line2 = self.format_duration(duration)
 
                 # Draw first line of time (MM:WW:DD)
@@ -844,7 +844,7 @@ class DNSCounter(object):
                             current_time = time.time()
                             if current_time - last_press > 0.3:  # Simple debounce
                                 logger.info("Button press detected - Resetting counter")
-                                self.last_reset = datetime.now()
+                                self.last_reset = datetime.now(timezone.utc)
                                 self.save_state()  # Save the new reset time
                                 try:
                                     logger.debug("Attempting to play sound...")
