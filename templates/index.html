@@ -313,6 +313,10 @@
         let lastReset = null;
         let updateInterval = null;
 
+        // Preload audio for instant playback
+        const resetAudio = new Audio('/api/audio');
+        resetAudio.preload = 'auto';
+
         // Format number with leading zero
         function pad(n) {
             return String(n).padStart(2, '0');
@@ -397,6 +401,9 @@
                     lastReset = new Date(data.last_reset);
                     updateDisplay();
                     showToast('Counter reset');
+                    // Play audio in browser (in addition to Pi speakers)
+                    resetAudio.currentTime = 0;
+                    resetAudio.play().catch(e => console.log('Audio play blocked:', e));
                 } else {
                     showToast('Reset failed');
                 }

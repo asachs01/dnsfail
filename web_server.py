@@ -17,7 +17,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file
 import yaml
 
 # Configure logging
@@ -90,9 +90,10 @@ class WebServer:
         # Lock for state file operations
         self._lock = threading.Lock()
 
-        # Create Flask app
+        # Create Flask app with static folder for audio files
         template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        self.app = Flask(__name__, template_folder=template_dir)
+        static_dir = os.path.join(os.path.dirname(__file__), "static")
+        self.app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
         # Register routes
         self._register_routes()
@@ -120,6 +121,13 @@ class WebServer:
                 "last_reset": state["last_reset"],
                 "success": True
             })
+
+        @self.app.route("/api/audio")
+        def get_audio():
+            """Serve the reset audio file for browser playback."""
+            if os.path.exists(self.audio_file):
+                return send_file(self.audio_file, mimetype="audio/wav")
+            return jsonify({"error": "Audio file not found"}), 404
 
         @self.app.route("/api/reset", methods=["POST"])
         def reset_timer():

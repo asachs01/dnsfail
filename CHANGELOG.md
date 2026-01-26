@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Web interface for remote monitoring and control (`web_server.py`)
   - Live timer display matching LED matrix format
-  - Reset button with audio playback
-  - REST API endpoints (`/api/state`, `/api/reset`)
+  - Reset button with audio playback (plays in browser AND on Pi speakers)
+  - REST API endpoints (`/api/state`, `/api/reset`, `/api/audio`)
   - Mobile-friendly responsive design
 - Astro/Starlight documentation site in `docs/` directory
 - GitHub Actions CI/CD workflow for automated Docker image builds
