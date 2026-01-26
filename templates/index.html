@@ -417,8 +417,8 @@
         // Update display every second
         updateInterval = setInterval(updateDisplay, 1000);
 
-        // Refresh state every 30 seconds to stay in sync
-        setInterval(fetchState, 30000);
+        // Refresh state every 2 seconds to stay in sync with physical button
+        setInterval(fetchState, 2000);
     </script>
 </body>
 </html>
