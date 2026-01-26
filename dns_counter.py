@@ -289,6 +289,52 @@ class DNSCounter(object):
             )
             return datetime.now()
 
+    def reset(self) -> datetime:
+        """Reset the counter, save state, and play audio.
+
+        This method is called by both the physical button and web interface
+        to ensure synchronized state.
+
+        Returns:
+            datetime: The new last_reset timestamp
+        """
+        self.last_reset = datetime.now()
+        self.save_state()
+
+        # Play audio
+        sound_file = self.config["audio_file"]
+        audio_device = self.config.get("audio_device", "")
+
+        try:
+            logger.debug("Playing reset sound...")
+            aplay_cmd = ["aplay"]
+            if audio_device:
+                aplay_cmd.extend(["-D", audio_device])
+            aplay_cmd.append(sound_file)
+            logger.debug(f"Running: {' '.join(aplay_cmd)}")
+            result = subprocess.run(
+                aplay_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.error(f"Audio error: {result.stderr}")
+            else:
+                logger.debug("Sound playback completed successfully")
+        except Exception as e:
+            logger.error(f"Error playing sound: {e}", exc_info=True)
+
+        return self.last_reset
+
+    def get_last_reset(self) -> datetime:
+        """Get the current last_reset timestamp.
+
+        Returns:
+            datetime: The current last_reset value
+        """
+        return self.last_reset
+
     def create_parser(self) -> argparse.ArgumentParser:
         """Create and configure argument parser for LED matrix options.
 
@@ -840,8 +886,12 @@ def start_web_server(dns_counter_instance: "DNSCounter") -> None:
     try:
         from web_server import WebServer
 
-        # Create web server with same config
-        server = WebServer(config=dns_counter_instance.config)
+        # Create web server with same config and callbacks for state sync
+        server = WebServer(
+            config=dns_counter_instance.config,
+            reset_callback=dns_counter_instance.reset,
+            get_state_callback=dns_counter_instance.get_last_reset,
+        )
 
         # Run in background thread
         web_thread = threading.Thread(

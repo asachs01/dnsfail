@@ -60,12 +60,20 @@ class WebServer:
         - POST /api/reset : Reset the timer
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        config_path: Optional[str] = None,
+        reset_callback: Optional[callable] = None,
+        get_state_callback: Optional[callable] = None,
+    ):
         """Initialize the web server.
 
         Args:
             config: Configuration dictionary (optional, loads from file if not provided)
             config_path: Path to config file (default: /usr/local/share/dnsfail/config.yaml)
+            reset_callback: Optional callback to invoke on reset (for state sync with main app)
+            get_state_callback: Optional callback to get current state from main app
         """
         if config is None:
             config_path = config_path or "/usr/local/share/dnsfail/config.yaml"
@@ -76,6 +84,8 @@ class WebServer:
         self.audio_file = config["audio_file"]
         self.audio_device = config.get("audio_device", "")
         self.port = config["web_port"]
+        self._reset_callback = reset_callback
+        self._get_state_callback = get_state_callback
 
         # Lock for state file operations
         self._lock = threading.Lock()
@@ -98,6 +108,13 @@ class WebServer:
         @self.app.route("/api/state")
         def get_state():
             """Get current timer state."""
+            # Use callback if available (syncs with main app), otherwise read file
+            if self._get_state_callback:
+                last_reset = self._get_state_callback()
+                return jsonify({
+                    "last_reset": last_reset.isoformat() if hasattr(last_reset, 'isoformat') else str(last_reset),
+                    "success": True
+                })
             state = self._load_state()
             return jsonify({
                 "last_reset": state["last_reset"],
@@ -108,6 +125,16 @@ class WebServer:
         def reset_timer():
             """Reset the timer and play audio."""
             try:
+                # Use callback if available (syncs with main app and plays audio)
+                if self._reset_callback:
+                    new_reset = self._reset_callback()
+                    return jsonify({
+                        "success": True,
+                        "last_reset": new_reset.isoformat() if hasattr(new_reset, 'isoformat') else str(new_reset),
+                        "message": "Timer reset successfully"
+                    })
+
+                # Fallback: standalone mode (no main app)
                 new_reset = datetime.now(timezone.utc)
                 self._save_state(new_reset)
                 self._play_audio()
