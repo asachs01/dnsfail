@@ -14,11 +14,19 @@ import os
 import subprocess
 import tempfile
 import threading
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, Response, jsonify, render_template, request, send_file
 import yaml
+
+# Prometheus metrics - import from shared module
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from metrics import (
+    RESET_COUNTER, SECONDS_SINCE_RESET, UPTIME_SECONDS,
+    AUDIO_PLAYBACK_ERRORS, APP_START_TIME, PROMETHEUS_AVAILABLE
+)
 
 # Configure logging
 logger = logging.getLogger("dns_counter.web")
@@ -129,10 +137,39 @@ class WebServer:
                 return send_file(self.audio_file, mimetype="audio/wav")
             return jsonify({"error": "Audio file not found"}), 404
 
+        @self.app.route("/metrics")
+        def metrics():
+            """Prometheus metrics endpoint."""
+            # Update gauge metrics
+            UPTIME_SECONDS.set(time.time() - APP_START_TIME)
+
+            # Calculate seconds since last reset
+            if self._get_state_callback:
+                last_reset = self._get_state_callback()
+            else:
+                state = self._load_state()
+                last_reset_str = state.get("last_reset")
+                if last_reset_str:
+                    last_reset = datetime.fromisoformat(last_reset_str.replace("Z", "+00:00"))
+                else:
+                    last_reset = None
+
+            if last_reset:
+                now = datetime.now(timezone.utc)
+                if hasattr(last_reset, 'tzinfo') and last_reset.tzinfo is None:
+                    last_reset = last_reset.replace(tzinfo=timezone.utc)
+                seconds_since = (now - last_reset).total_seconds()
+                SECONDS_SINCE_RESET.set(seconds_since)
+
+            return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
         @self.app.route("/api/reset", methods=["POST"])
         def reset_timer():
             """Reset the timer and play audio."""
             try:
+                # Increment reset counter for web source
+                RESET_COUNTER.labels(source='web').inc()
+
                 # Use callback if available (syncs with main app and plays audio)
                 if self._reset_callback:
                     new_reset = self._reset_callback()

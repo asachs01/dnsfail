@@ -39,6 +39,12 @@ import yaml
 from PIL import ImageDraw, ImageFont
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
+# Prometheus metrics - import from shared module
+from metrics import (
+    RESET_COUNTER, SECONDS_SINCE_RESET, UPTIME_SECONDS,
+    AUDIO_PLAYBACK_ERRORS, APP_START_TIME, PROMETHEUS_AVAILABLE
+)
+
 # Set up logging with more detail
 logger = logging.getLogger("dns_counter")
 logger.setLevel(logging.DEBUG)  # Change to DEBUG level
@@ -850,6 +856,9 @@ class DNSCounter(object):
                             current_time = time.time()
                             if current_time - last_press > 0.3:  # Simple debounce
                                 logger.info("Button press detected - Resetting counter")
+                                # Increment Prometheus counter for button resets
+                                if PROMETHEUS_AVAILABLE:
+                                    RESET_COUNTER.labels(source='button').inc()
                                 self.last_reset = datetime.now(timezone.utc)
                                 self.save_state()  # Save the new reset time
                                 try:
@@ -877,6 +886,8 @@ class DNSCounter(object):
                                     )
                                     if result.returncode != 0:
                                         logger.error(f"Audio error: {result.stderr}")
+                                        if PROMETHEUS_AVAILABLE:
+                                            AUDIO_PLAYBACK_ERRORS.inc()
                                     else:
                                         logger.debug(
                                             "Sound playback completed successfully"
@@ -885,6 +896,8 @@ class DNSCounter(object):
                                     logger.error(
                                         f"Error playing sound: {e}", exc_info=True
                                     )
+                                    if PROMETHEUS_AVAILABLE:
+                                        AUDIO_PLAYBACK_ERRORS.inc()
                                 last_press = current_time
                 time.sleep(0.1)
             except Exception as e:

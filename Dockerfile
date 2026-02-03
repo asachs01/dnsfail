@@ -71,10 +71,12 @@ RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /tmp/matrix && \
 # Copy application code
 COPY dns_counter.py .
 COPY web_server.py .
+COPY metrics.py .
 COPY templates/ ./templates/
 COPY fonts/ ./fonts/
 COPY fail.mp3 .
 COPY entrypoint.sh .
+COPY play_audio.sh .
 
 # Create logs directory
 RUN mkdir -p /app/logs
@@ -83,6 +85,6 @@ RUN mkdir -p /app/logs
 ENV MOCK_MODE=0
 ENV PYTHONUNBUFFERED=1
 
-# Entrypoint for running with hardware
-ENTRYPOINT ["python", "dns_counter.py"]
+# Entrypoint for running with hardware (uses bash script to wait for audio devices)
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
 CMD []
