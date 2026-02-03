@@ -74,6 +74,7 @@ COPY web_server.py .
 COPY templates/ ./templates/
 COPY fonts/ ./fonts/
 COPY fail.mp3 .
+COPY entrypoint.sh .
 
 # Create logs directory
 RUN mkdir -p /app/logs

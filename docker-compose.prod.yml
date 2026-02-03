@@ -7,8 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    # Override entrypoint to run without --mock flag, use Docker config
-    entrypoint: ["python", "dns_counter.py", "--config", "/app/config.yaml"]
+    # Override entrypoint to wait for audio devices before starting Python
+    entrypoint: ["/bin/bash", "/app/entrypoint.sh", "--config", "/app/config.yaml"]
     command: []
     volumes:
       # Application files
@@ -18,6 +18,8 @@ services:
       - ./fonts:/app/fonts
       - ./fail.mp3:/app/fail.mp3
       - ./config.docker.yaml:/app/config.yaml
+      - ./entrypoint.sh:/app/entrypoint.sh
+      - ./play_audio.sh:/app/play_audio.sh
       # Persistence directory
       - /usr/local/share/dnsfail:/usr/local/share/dnsfail
       # Logs

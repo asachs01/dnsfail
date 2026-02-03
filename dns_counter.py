@@ -307,10 +307,16 @@ class DNSCounter(object):
 
         try:
             logger.debug("Playing reset sound...")
-            aplay_cmd = ["aplay"]
-            if audio_device:
-                aplay_cmd.extend(["-D", audio_device])
-            aplay_cmd.append(sound_file)
+            # Use shell wrapper to ensure fresh ALSA context (fixes Docker startup race)
+            play_script = "/app/play_audio.sh"
+            if os.path.exists(play_script):
+                aplay_cmd = ["bash", play_script, audio_device or "default", sound_file]
+            else:
+                # Fallback to direct aplay for non-Docker environments
+                aplay_cmd = ["aplay"]
+                if audio_device:
+                    aplay_cmd.extend(["-D", audio_device])
+                aplay_cmd.append(sound_file)
             logger.debug(f"Running: {' '.join(aplay_cmd)}")
             result = subprocess.run(
                 aplay_cmd,
@@ -848,17 +854,26 @@ class DNSCounter(object):
                                 self.save_state()  # Save the new reset time
                                 try:
                                     logger.debug("Attempting to play sound...")
-                                    aplay_cmd = ["aplay"]
-                                    if audio_device:
-                                        aplay_cmd.extend(["-D", audio_device])
-                                    aplay_cmd.append(sound_file)
+                                    # Use shell wrapper for fresh ALSA context
+                                    play_script = "/app/play_audio.sh"
+                                    if os.path.exists(play_script):
+                                        aplay_cmd = [
+                                            "bash",
+                                            play_script,
+                                            audio_device or "default",
+                                            sound_file,
+                                        ]
+                                    else:
+                                        aplay_cmd = ["aplay"]
+                                        if audio_device:
+                                            aplay_cmd.extend(["-D", audio_device])
+                                        aplay_cmd.append(sound_file)
                                     logger.debug(f"Running: {' '.join(aplay_cmd)}")
                                     result = subprocess.run(
                                         aplay_cmd,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
-                                        # Don't pass custom env - inherit from parent
                                     )
                                     if result.returncode != 0:
                                         logger.error(f"Audio error: {result.stderr}")
